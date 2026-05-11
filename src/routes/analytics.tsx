@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar, CartesianGrid } from "recharts";
 import { Download } from "lucide-react";
 
-export const Route = createFileRoute("/_app/analytics")({
+export const Route = createFileRoute("/analytics")({
   head: () => ({ meta: [{ title: "Analytics — BayTasks" }] }),
   component: Analytics,
 });

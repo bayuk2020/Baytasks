@@ -3,7 +3,7 @@ import { useStore } from "@/lib/store";
 import { Send, Check } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/settings")({
+export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — BayTasks" }] }),
   component: Settings,
 });

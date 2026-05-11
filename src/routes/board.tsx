@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { TaskModal } from "@/components/TaskModal";
 
-export const Route = createFileRoute("/_app/board")({
+export const Route = createFileRoute("/board")({
   head: () => ({ meta: [{ title: "Board — BayTasks" }] }),
   component: BoardPage,
 });

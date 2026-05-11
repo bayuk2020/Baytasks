@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { TaskModal } from "@/components/TaskModal";
 
-export const Route = createFileRoute("/_app/calendar")({
+export const Route = createFileRoute("/calendar")({
   head: () => ({ meta: [{ title: "Calendar — BayTasks" }] }),
   component: CalendarPage,
 });
