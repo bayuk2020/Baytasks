@@ -69,7 +69,11 @@ function RootComponent() {
   useEffect(() => setMounted(true), []);
   return (
     <QueryClientProvider client={queryClient}>
-      {mounted ? <AppShell /> : <Outlet />}
+      {mounted ? <AppShell /> : (
+        <div className="min-h-screen grid place-items-center bg-background">
+          <div className="text-sm text-muted-foreground">Loading BayTasks…</div>
+        </div>
+      )}
     </QueryClientProvider>
   );
 }
