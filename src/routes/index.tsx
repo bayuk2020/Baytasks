@@ -10,7 +10,87 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  const { tasks, boards, activeBoardId, streak } = useStore();
+  const { tasks, boards, activeBoardId } = useStore();
+  // =========================
+  // STREAK CALCULATION
+  // =========================
+  
+  const completedDays =
+  
+    Array.from(
+  
+      new Set(
+  
+        useStore
+  
+          .getState()
+  
+          .tasks
+  
+          .filter(
+            (t) =>
+              t.completedAt
+          )
+  
+          .map((t) => {
+  
+            const d =
+              new Date(
+                t.completedAt!
+              );
+  
+            d.setHours(
+              0,
+              0,
+              0,
+              0
+            );
+  
+            return d.getTime();
+          })
+      )
+    )
+  
+    .sort(
+      (a, b) =>
+        b - a
+    );
+  
+  let streakCount = 0;
+  
+  for (
+    let i = 0;
+    i < completedDays.length;
+    i++
+  ) {
+  
+    if (
+      i === 0
+    ) {
+  
+      streakCount++;
+  
+      continue;
+    }
+  
+    const diff =
+  
+      completedDays[i - 1] -
+  
+      completedDays[i];
+  
+    if (
+      diff ===
+      86400000
+    ) {
+  
+      streakCount++;
+  
+    } else {
+  
+      break;
+    }
+  }
   const myTasks = tasks.filter((t) => t.boardId === activeBoardId);
   const stats = useMemo(() => {
     const done = myTasks.filter((t) => t.column === "done").length;
@@ -45,7 +125,7 @@ function Dashboard() {
         <Stat icon={<Target className="h-4 w-4" />} label="Focus score" value={`${stats.focus}%`} accent />
         <Stat icon={<CheckCircle2 className="h-4 w-4" />} label="Completed" value={stats.done} />
         <Stat icon={<Clock className="h-4 w-4" />} label="In progress" value={stats.inProg} />
-        <Stat icon={<Flame className="h-4 w-4" />} label="Streak" value={`${streak.current}d`} />
+        <Stat icon={<Flame className="h-4 w-4" />} label="Streak" value={`${streakCount}d`} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

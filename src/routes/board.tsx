@@ -1,39 +1,186 @@
+/* eslint-disable prettier/prettier */
 import { createFileRoute } from "@tanstack/react-router";
+
 import { KanbanBoard } from "@/components/KanbanBoard";
+
 import { useStore } from "@/lib/store";
+
 import { useSearch } from "@/components/AppShell";
-import { Plus } from "lucide-react";
+
+import { Plus, Sparkles } from "lucide-react";
+
+import { motion } from "framer-motion";
+
 import { useState } from "react";
+
 import { TaskModal } from "@/components/TaskModal";
 
+import GlowButton from "@/components/ui/GlowButton";
+
 export const Route = createFileRoute("/board")({
-  head: () => ({ meta: [{ title: "Board — BayTasks" }] }),
+  head: () => ({
+    meta: [
+      {
+        title: "Board — BayTasks",
+      },
+    ],
+  }),
+
   component: BoardPage,
 });
 
 function BoardPage() {
   const { boards, activeBoardId } = useStore();
+
   const board = boards.find((b) => b.id === activeBoardId);
+
   const { q } = useSearch();
+
   const [creating, setCreating] = useState(false);
 
   return (
-    <div className="space-y-5">
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{board?.emoji}</span>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{board?.name ?? "Select a board"}</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Drag cards across columns. Click any card to edit.</p>
+    <div className="space-y-6">
+      {/* ========================= */}
+      {/* HEADER */}
+      {/* ========================= */}
+
+      <motion.header
+        initial={{
+          opacity: 0,
+          y: 10,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        transition={{
+          duration: 0.35,
+        }}
+        className="
+          relative
+
+          overflow-hidden
+
+          rounded-3xl
+
+          border
+          border-cyan-500/10
+
+          bg-gradient-to-br
+          from-cyan-500/[0.03]
+          via-background
+          to-blue-500/[0.03]
+
+          p-6
+
+          shadow-[0_0_50px_rgba(34,211,238,0.06)]
+        "
+      >
+        {/* AURA */}
+        <div
+          className="
+            absolute
+            inset-0
+
+            bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.08),transparent_35%)]
+
+            pointer-events-none
+          "
+        />
+
+        <div className="relative z-10 flex items-center justify-between">
+          {/* LEFT */}
+          <div className="flex items-center gap-4">
+            <motion.div
+              animate={{
+                rotate: [0, -5, 5, 0],
+              }}
+              transition={{
+                duration: 6,
+                repeat: Infinity,
+              }}
+              className="
+                h-14
+                w-14
+
+                rounded-2xl
+
+                border
+                border-cyan-400/20
+
+                bg-cyan-400/5
+
+                flex
+                items-center
+                justify-center
+
+                shadow-[0_0_30px_rgba(34,211,238,0.15)]
+              "
+            >
+              <span className="text-3xl">{board?.emoji}</span>
+            </motion.div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h1
+                  className="
+                    text-3xl
+                    font-bold
+                    tracking-tight
+
+                    bg-gradient-to-r
+                    from-cyan-100
+                    via-cyan-300
+                    to-blue-400
+
+                    bg-clip-text
+                    text-transparent
+                  "
+                >
+                  {board?.name ?? "Select a board"}
+                </h1>
+
+                <Sparkles
+                  className="
+                    h-5
+                    w-5
+                    text-cyan-300
+                  "
+                />
+              </div>
+
+              <p
+                className="
+                  text-sm
+                  text-muted-foreground
+
+                  mt-1
+                "
+              >
+                Drag cards across columns. Click any card to edit.
+              </p>
+            </div>
           </div>
+
+          {/* RIGHT */}
+          <GlowButton onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4" />
+
+            <span>New Task</span>
+          </GlowButton>
         </div>
-        <button onClick={() => setCreating(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--gradient-neon)] text-primary-foreground text-sm font-medium neon-ring hover:scale-[1.02] transition">
-          <Plus className="h-4 w-4" /> New task
-        </button>
-      </header>
+      </motion.header>
+
+      {/* ========================= */}
+      {/* BOARD */}
+      {/* ========================= */}
 
       <KanbanBoard search={q} />
+
+      {/* ========================= */}
+      {/* MODAL */}
+      {/* ========================= */}
+
       {creating && <TaskModal createInColumn="todo" onClose={() => setCreating(false)} />}
     </div>
   );

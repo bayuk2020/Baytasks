@@ -1,0 +1,211 @@
+/* src/components/ui/GlowButton.css */
+
+.glow-btn {
+  position: relative;
+  overflow: hidden;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 14px 24px;
+  gap: 10px;
+
+  border-radius: 20px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(34, 211, 238, 0.18),
+      rgba(15, 23, 42, 0.92)
+    );
+
+  backdrop-filter: blur(14px);
+
+  color: #dffcff;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+
+  box-shadow:
+    0 0 25px rgba(34, 211, 238, 0.22),
+    0 0 80px rgba(34, 211, 238, 0.08),
+    inset 0 0 18px rgba(255,255,255,0.04);
+}
+
+/* HOVER */
+.glow-btn:hover {
+  border-color: rgba(103, 232, 249, 0.85);
+
+  box-shadow:
+    0 0 35px rgba(34, 211, 238, 0.45),
+    0 0 90px rgba(34, 211, 238, 0.22),
+    0 0 160px rgba(34, 211, 238, 0.18);
+
+  transform: translateY(-1px);
+}
+
+/* ACTIVE */
+.glow-btn:active {
+  transform: scale(0.98);
+}
+
+/* CONTENT */
+.glow-content {
+  position: relative;
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* SUN AURA */
+.glow-sun {
+  position: absolute;
+
+  width: 220%;
+  height: 220%;
+
+  top: 50%;
+  left: 50%;
+
+  transform: translate(-50%, -50%);
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(34, 211, 238, 0.22) 0%,
+      rgba(34, 211, 238, 0.1) 35%,
+      rgba(34, 211, 238, 0.02) 55%,
+      transparent 75%
+    );
+
+  animation:
+    pulseAura 4s ease-in-out infinite;
+
+  pointer-events: none;
+}
+
+/* PULSE */
+@keyframes pulseAura {
+  0% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+
+  100% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+}
+
+/* SPARKLES */
+.spark {
+  position: absolute;
+
+  width: 5px;
+  height: 5px;
+
+  border-radius: 999px;
+
+  background: white;
+
+  box-shadow:
+    0 0 8px white,
+    0 0 14px rgba(255,255,255,0.9);
+
+  opacity: 0;
+
+  pointer-events: none;
+}
+
+/* INDIVIDUAL SPARKS */
+.spark-1 {
+  top: 12%;
+  left: 18%;
+
+  animation:
+    sparkle 2.8s infinite;
+}
+
+.spark-2 {
+  top: 18%;
+  right: 14%;
+
+  animation:
+    sparkle 3.2s infinite 0.5s;
+}
+
+.spark-3 {
+  bottom: 20%;
+  left: 12%;
+
+  animation:
+    sparkle 2.4s infinite 1s;
+}
+
+.spark-4 {
+  bottom: 16%;
+  right: 18%;
+
+  animation:
+    sparkle 3.5s infinite 1.5s;
+}
+
+.spark-5 {
+  top: 48%;
+  right: 8%;
+
+  animation:
+    sparkle 2.6s infinite 0.8s;
+}
+
+/* SPARKLE ANIMATION */
+@keyframes sparkle {
+  0% {
+    opacity: 0;
+    transform:
+      scale(0.2)
+      translateY(0px);
+  }
+
+  20% {
+    opacity: 1;
+    transform:
+      scale(1.1)
+      translateY(-4px);
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+
+  100% {
+    opacity: 0;
+    transform:
+      scale(0.2)
+      translateY(-12px);
+  }
+}
+
+/* EXTRA INTENSE HOVER */
+.glow-btn:hover .spark {
+  animation-duration: 1.4s;
+}
+
+.glow-btn:hover .glow-sun {
+  filter: brightness(1.4);
+}

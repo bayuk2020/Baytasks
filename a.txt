@@ -1,0 +1,473 @@
+keren nih :
+Install & API spec
+Drop-in spec to wire BayTasks to a Laravel + MySQL backend running on XAMPP / Laragon.
+
+Install (Windows + XAMPP)
+
+
+
+Server requirements
+Windows PC server with XAMPP or Laragon
+PHP ≥ 8.2, Composer, Node 20+, MySQL 8 / MariaDB 10.6
+Apache (XAMPP) or Nginx (Laragon)
+1. Database (phpMyAdmin)
+# In phpMyAdmin → New → Database name: baytasks (utf8mb4_unicode_ci)
+# Then import the schema from the "MySQL schema" tab.
+2. Laravel backend
+composer create-project laravel/laravel baytasks-api
+cd baytasks-api
+composer require laravel/sanctum guzzlehttp/guzzle
+# Edit .env:
+#   DB_DATABASE=baytasks
+#   DB_USERNAME=root
+#   DB_PASSWORD=
+#   TELEGRAM_BOT_TOKEN=...
+php artisan migrate
+php artisan serve --host=0.0.0.0 --port=8000
+3. Scheduler (Windows Task Scheduler)
+# Create a Basic Task → Trigger: Daily, Repeat every 1 minute
+# Action: Start a program
+#   Program: C:\xampp\php\php.exe
+#   Arguments: C:\xampp\htdocs\baytasks-api\artisan schedule:run
+# This runs reminders, recurring tasks, and the daily Telegram briefing.
+4. Frontend
+# This BayTasks UI persists to localStorage out of the box.
+# To wire it to your Laravel API, replace src/lib/store.ts persistence
+# with fetch() calls to the routes documented in "Laravel API".
+
+MySQL schema
+-- baytasks schema (MySQL 8 / MariaDB 10.6)
+CREATE TABLE users (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(120) NOT NULL,
+  email VARCHAR(190) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NULL, updated_at TIMESTAMP NULL
+);
+
+CREATE TABLE projects (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  emoji VARCHAR(8) DEFAULT '📋',
+  created_at TIMESTAMP NULL, updated_at TIMESTAMP NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE boards (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  project_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  position INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NULL, updated_at TIMESTAMP NULL,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE tasks (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  board_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  notes TEXT,
+  column_key ENUM('backlog','todo','in_progress','review','done') DEFAULT 'todo',
+  priority ENUM('low','med','high','urgent') DEFAULT 'med',
+  tags JSON,
+  due_at DATETIME NULL,
+  reminder ENUM('10m','1h','1d') NULL,
+  recurring ENUM('none','daily','weekly','monthly') DEFAULT 'none',
+  position INT NOT NULL DEFAULT 0,
+  completed_at DATETIME NULL,
+  reminded TINYINT(1) DEFAULT 0,
+  created_at TIMESTAMP NULL, updated_at TIMESTAMP NULL,
+  FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX (due_at), INDEX (column_key)
+);
+
+CREATE TABLE subtasks (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  task_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  done TINYINT(1) DEFAULT 0,
+  position INT DEFAULT 0,
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+);
+
+CREATE TABLE attachments (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  task_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  size INT,
+  path VARCHAR(512),
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+);
+
+CREATE TABLE reminders (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  task_id BIGINT UNSIGNED NOT NULL,
+  fire_at DATETIME NOT NULL,
+  channel ENUM('inapp','telegram') DEFAULT 'inapp',
+  sent TINYINT(1) DEFAULT 0,
+  INDEX (fire_at, sent),
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+);
+
+CREATE TABLE telegram_settings (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED UNIQUE NOT NULL,
+  chat_id VARCHAR(64) NOT NULL,
+  enabled TINYINT(1) DEFAULT 1,
+  daily_briefing TINYINT(1) DEFAULT 1,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE activity_logs (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  task_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  text VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+);
+
+Laravel API
+# Auth (Sanctum)
+POST   /api/register             { name, email, password }
+POST   /api/login                { email, password }       -> { token }
+POST   /api/logout
+GET    /api/me
+
+# Projects & boards
+GET    /api/projects
+POST   /api/projects             { name, emoji }
+GET    /api/projects/{id}/boards
+POST   /api/projects/{id}/boards { name }
+
+# Tasks
+GET    /api/boards/{id}/tasks
+POST   /api/tasks                { board_id, title, column_key, priority, tags[], due_at, reminder, recurring, description }
+PATCH  /api/tasks/{id}           (any field)
+DELETE /api/tasks/{id}
+POST   /api/tasks/{id}/move      { column_key, position }
+
+# Subtasks / attachments / activity
+POST   /api/tasks/{id}/subtasks      { title }
+PATCH  /api/subtasks/{id}            { done }
+POST   /api/tasks/{id}/attachments   (multipart)
+GET    /api/tasks/{id}/activity
+
+# Reminders + Telegram
+GET    /api/telegram               -> settings
+PUT    /api/telegram               { chat_id, enabled, daily_briefing }
+POST   /api/telegram/test
+
+# Analytics
+GET    /api/analytics/summary?board_id=...
+GET    /api/analytics/series?days=14
+
+# All non-auth routes use Authorization: Bearer <token>
+# Standard JSON envelope: { data, meta?, error? }
+
+Telegram bot
+1. Talk to @BotFather → /newbot → save the token.
+
+2. Add TELEGRAM_BOT_TOKEN to Laravel .env.
+
+3. Send any message to your bot, then visit https://api.telegram.org/bot<TOKEN>/getUpdates to find your chat_id. Paste it in BayTasks → Settings.
+
+// Laravel: app/Services/Telegram.php
+public function send(string $chatId, string $text): void {
+  Http::post("https://api.telegram.org/bot".env('TELEGRAM_BOT_TOKEN')."/sendMessage", [
+    'chat_id' => $chatId, 'text' => $text, 'parse_mode' => 'HTML',
+  ]);
+}
+
+// app/Console/Kernel.php
+protected function schedule(Schedule $schedule): void {
+  $schedule->call(fn() => app(ReminderDispatcher::class)->tick())->everyMinute();
+  $schedule->call(fn() => app(DailyBriefing::class)->run())->dailyAt('08:00');
+  $schedule->call(fn() => app(RecurringTasks::class)->roll())->dailyAt('00:05');
+}
+Daily briefing message format:
+
+☀️ <b>Morning, {name}</b>
+You have <b>{open}</b> open tasks, <b>{due_today}</b> due today, <b>{overdue}</b> overdue.
+🔥 Streak: {streak} days. Let's ship it.
+
+
+store.ts
+TaskModal.tsx
+KanbanBoard.tsx
+settings.tsx
+============
+
+import { createFileRoute } from "@tanstack/react-router";
+import { KanbanBoard } from "@/components/KanbanBoard";
+import { useStore } from "@/lib/store";
+import { useSearch } from "@/components/AppShell";
+import { Plus } from "lucide-react";
+import { useState } from "react";
+import { TaskModal } from "@/components/TaskModal";
+import GlowButton from "@/components/ui/GlowButton";
+
+export const Route = createFileRoute("/board")({
+  head: () => ({ meta: [{ title: "Board — BayTasks" }] }),
+  component: BoardPage,
+});
+
+function BoardPage() {
+  const { boards, activeBoardId } = useStore();
+  const board = boards.find((b) => b.id === activeBoardId);
+  const { q } = useSearch();
+  const [creating, setCreating] = useState(false);
+
+  return (
+    <div className="space-y-5">
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{board?.emoji}</span>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">{board?.name ?? "Select a board"}</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Drag cards across columns. Click any card to edit.</p>
+          </div>
+        </div>
+        <button onClick={() => setCreating(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--gradient-neon)] text-primary-foreground text-sm font-medium neon-ring hover:scale-[1.02] transition">
+          <Plus className="h-4 w-4" /> New task
+        </button>
+      </header>
+
+      <KanbanBoard search={q} />
+      {creating && <TaskModal createInColumn="todo" onClose={() => setCreating(false)} />}
+    </div>
+  );
+}
+
+
+
+=======================Analytics.tsx
+import { createFileRoute } from "@tanstack/react-router";
+import { useStore } from "@/lib/store";
+import { useMemo } from "react";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar, CartesianGrid } from "recharts";
+import { Download } from "lucide-react";
+
+export const Route = createFileRoute("/analytics")({
+  head: () => ({ meta: [{ title: "Analytics — BayTasks" }] }),
+  component: Analytics,
+});
+
+function Analytics() {
+  const { tasks, activeBoardId } = useStore();
+  const my = tasks.filter((t) => t.boardId === activeBoardId);
+
+  const last14 = useMemo(() => {
+    const days = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - (13 - i));
+      return d;
+    });
+    return days.map((d) => {
+      const next = new Date(d); next.setDate(d.getDate() + 1);
+      const completed = my.filter((t) => t.completedAt && t.completedAt >= d.getTime() && t.completedAt < next.getTime()).length;
+      const created = my.filter((t) => t.createdAt >= d.getTime() && t.createdAt < next.getTime()).length;
+      return { day: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }), completed, created };
+    });
+  }, [my]);
+
+  const byPriority = useMemo(() => {
+    const counts: Record<string, number> = { low: 0, med: 0, high: 0, urgent: 0 };
+    for (const t of my.filter((x) => x.column !== "done")) counts[t.priority]++;
+    return Object.entries(counts).map(([priority, count]) => ({ priority, count }));
+  }, [my]);
+
+  const exportJson = () => {
+    const blob = new Blob([JSON.stringify(my, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `baytasks-${Date.now()}.json`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-6">
+      <header className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
+        <button onClick={exportJson}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:border-primary/40 text-sm">
+          <Download className="h-4 w-4" /> Export
+        </button>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 glass rounded-2xl p-5">
+          <h2 className="font-medium mb-4">Weekly performance</h2>
+          <div className="h-72">
+            <ResponsiveContainer>
+              <AreaChart data={last14}>
+                <defs>
+                  <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--neon)" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="var(--neon)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="day" stroke="var(--muted-foreground)" tick={{ fontSize: 11 }} />
+                <YAxis stroke="var(--muted-foreground)" tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: "var(--surface-elevated)", border: "1px solid var(--border)", borderRadius: 8 }} />
+                <Area type="monotone" dataKey="completed" stroke="var(--neon)" fill="url(#g1)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="glass rounded-2xl p-5">
+          <h2 className="font-medium mb-4">Open by priority</h2>
+          <div className="h-72">
+            <ResponsiveContainer>
+              <BarChart data={byPriority}>
+                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="priority" stroke="var(--muted-foreground)" tick={{ fontSize: 11 }} />
+                <YAxis stroke="var(--muted-foreground)" tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: "var(--surface-elevated)", border: "1px solid var(--border)", borderRadius: 8 }} />
+                <Bar dataKey="count" fill="var(--neon)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+\src\components
+\src\hooks
+\src\lib
+\src\router.tsx
+\src\routes
+\src\routeTree.gen.ts
+\src\server.ts
+\src\start.ts
+\src\styles.css
+\src\components\AppShell.tsx
+\src\components\KanbanBoard.tsx
+\src\components\Sidebar.tsx
+\src\components\TaskCard.tsx
+\src\components\TaskModal.tsx
+\src\components\Topbar.tsx
+\src\components\ui
+\src\components\ui\accordion.tsx
+\src\components\ui\alert-dialog.tsx
+\src\components\ui\alert.tsx
+\src\components\ui\aspect-ratio.tsx
+\src\components\ui\avatar.tsx
+\src\components\ui\badge.tsx
+\src\components\ui\breadcrumb.tsx
+\src\components\ui\button.tsx
+\src\components\ui\calendar.tsx
+\src\components\ui\card.tsx
+\src\components\ui\carousel.tsx
+\src\components\ui\chart.tsx
+\src\components\ui\checkbox.tsx
+\src\components\ui\collapsible.tsx
+\src\components\ui\command.tsx
+\src\components\ui\context-menu.tsx
+\src\components\ui\dialog.tsx
+\src\components\ui\drawer.tsx
+\src\components\ui\dropdown-menu.tsx
+\src\components\ui\form.tsx
+\src\components\ui\GlowButton.css
+\src\components\ui\GlowButton.tsx
+\src\components\ui\hover-card.tsx
+\src\components\ui\input-otp.tsx
+\src\components\ui\input.tsx
+\src\components\ui\label.tsx
+\src\components\ui\menubar.tsx
+\src\components\ui\navigation-menu.tsx
+\src\components\ui\pagination.tsx
+\src\components\ui\popover.tsx
+\src\components\ui\progress.tsx
+\src\components\ui\radio-group.tsx
+\src\components\ui\resizable.tsx
+\src\components\ui\scroll-area.tsx
+\src\components\ui\select.tsx
+\src\components\ui\separator.tsx
+\src\components\ui\sheet.tsx
+\src\components\ui\sidebar.tsx
+\src\components\ui\skeleton.tsx
+\src\components\ui\slider.tsx
+\src\components\ui\sonner.tsx
+\src\components\ui\switch.tsx
+\src\components\ui\table.tsx
+\src\components\ui\tabs.tsx
+\src\components\ui\textarea.tsx
+\src\components\ui\toggle-group.tsx
+\src\components\ui\toggle.tsx
+\src\components\ui\tooltip.tsx
+\src\hooks\use-mobile.tsx
+\src\lib\api.ts
+\src\lib\error-capture.ts
+\src\lib\error-page.ts
+\src\lib\store.ts
+\src\lib\useReminders.ts
+\src\lib\utils.ts
+\src\routes\analytics.tsx
+\src\routes\board.tsx
+\src\routes\calendar.tsx
+\src\routes\docs.tsx
+\src\routes\index.tsx
+\src\routes\pomodoro.tsx
+\src\routes\settings.tsx
+\src\routes\__root.tsx
+
+\app\Console
+\app\Exceptions
+\app\Http
+\app\Models
+\app\Providers
+\app\Services
+\app\Console\Commands
+\app\Console\Kernel.php
+\app\Console\Commands\SendTaskReminders.php
+\app\Exceptions\Handler.php
+\app\Http\Controllers
+\app\Http\Kernel.php
+\app\Http\Middleware
+\app\Http\Controllers\Api
+\app\Http\Controllers\Controller.php
+\app\Http\Controllers\Api\AttachmentController.php
+\app\Http\Controllers\Api\BoardController.php
+\app\Http\Controllers\Api\SubtaskController.php
+\app\Http\Controllers\Api\TaskController.php
+\app\Http\Controllers\Api\TelegramSettingController.php
+\app\Http\Middleware\Authenticate.php
+\app\Http\Middleware\EncryptCookies.php
+\app\Http\Middleware\PreventRequestsDuringMaintenance.php
+\app\Http\Middleware\RedirectIfAuthenticated.php
+\app\Http\Middleware\TrimStrings.php
+\app\Http\Middleware\TrustHosts.php
+\app\Http\Middleware\TrustProxies.php
+\app\Http\Middleware\ValidateSignature.php
+\app\Http\Middleware\VerifyCsrfToken.php
+\app\Models\ActivityLog.php
+\app\Models\Attachment.php
+\app\Models\Board.php
+\app\Models\Subtask.php
+\app\Models\Task.php
+\app\Models\TelegramSetting.php
+\app\Models\User.php
+\app\Providers\AppServiceProvider.php
+\app\Providers\AuthServiceProvider.php
+\app\Providers\BroadcastServiceProvider.php
+\app\Providers\EventServiceProvider.php
+\app\Providers\RouteServiceProvider.php
+\app\Services\DailyBriefing.php
+\app\Services\RecurringTaskService.php
+\app\Services\TelegramService.php
+
+\routes\api.php
+\routes\channels.php
+\routes\console.php
+\routes\web.php
+
+store.tsx, calendar.tsx, index.tsx (untuk halaman dashboard), api.tsx, dan analytics.tsx

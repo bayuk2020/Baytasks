@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PomodoroRouteImport } from './routes/pomodoro'
+import { Route as HabitsRouteImport } from './routes/habits'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BoardRouteImport } from './routes/board'
@@ -19,6 +21,16 @@ import { Route as IndexRouteImport } from './routes/index'
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PomodoroRoute = PomodoroRouteImport.update({
+  id: '/pomodoro',
+  path: '/pomodoro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HabitsRoute = HabitsRouteImport.update({
+  id: '/habits',
+  path: '/habits',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsRoute = DocsRouteImport.update({
@@ -53,6 +65,8 @@ export interface FileRoutesByFullPath {
   '/board': typeof BoardRoute
   '/calendar': typeof CalendarRoute
   '/docs': typeof DocsRoute
+  '/habits': typeof HabitsRoute
+  '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +75,8 @@ export interface FileRoutesByTo {
   '/board': typeof BoardRoute
   '/calendar': typeof CalendarRoute
   '/docs': typeof DocsRoute
+  '/habits': typeof HabitsRoute
+  '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
 }
 export interface FileRoutesById {
@@ -70,13 +86,31 @@ export interface FileRoutesById {
   '/board': typeof BoardRoute
   '/calendar': typeof CalendarRoute
   '/docs': typeof DocsRoute
+  '/habits': typeof HabitsRoute
+  '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/analytics' | '/board' | '/calendar' | '/docs' | '/settings'
+  fullPaths:
+    | '/'
+    | '/analytics'
+    | '/board'
+    | '/calendar'
+    | '/docs'
+    | '/habits'
+    | '/pomodoro'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analytics' | '/board' | '/calendar' | '/docs' | '/settings'
+  to:
+    | '/'
+    | '/analytics'
+    | '/board'
+    | '/calendar'
+    | '/docs'
+    | '/habits'
+    | '/pomodoro'
+    | '/settings'
   id:
     | '__root__'
     | '/'
@@ -84,6 +118,8 @@ export interface FileRouteTypes {
     | '/board'
     | '/calendar'
     | '/docs'
+    | '/habits'
+    | '/pomodoro'
     | '/settings'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +129,8 @@ export interface RootRouteChildren {
   BoardRoute: typeof BoardRoute
   CalendarRoute: typeof CalendarRoute
   DocsRoute: typeof DocsRoute
+  HabitsRoute: typeof HabitsRoute
+  PomodoroRoute: typeof PomodoroRoute
   SettingsRoute: typeof SettingsRoute
 }
 
@@ -103,6 +141,20 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pomodoro': {
+      id: '/pomodoro'
+      path: '/pomodoro'
+      fullPath: '/pomodoro'
+      preLoaderRoute: typeof PomodoroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/habits': {
+      id: '/habits'
+      path: '/habits'
+      fullPath: '/habits'
+      preLoaderRoute: typeof HabitsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs': {
@@ -149,6 +201,8 @@ const rootRouteChildren: RootRouteChildren = {
   BoardRoute: BoardRoute,
   CalendarRoute: CalendarRoute,
   DocsRoute: DocsRoute,
+  HabitsRoute: HabitsRoute,
+  PomodoroRoute: PomodoroRoute,
   SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,20 +1,61 @@
+/* eslint-disable prettier/prettier */
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { useEffect } from "react";
+import { taskApi, subtaskApi } from "@/lib/api";
+import { toast } from "sonner";
+import { boardApi } from "@/lib/api";
 
+import {
+  habitApi,
+} from "@/lib/api";
 export type Priority = "low" | "med" | "high" | "urgent";
+
 export type ColumnId = "backlog" | "todo" | "in_progress" | "review" | "done";
 
-export const COLUMNS: { id: ColumnId; title: string }[] = [
-  { id: "backlog", title: "Backlog" },
-  { id: "todo", title: "To Do" },
-  { id: "in_progress", title: "In Progress" },
-  { id: "review", title: "Review" },
-  { id: "done", title: "Done" },
+export const COLUMNS: {
+  id: ColumnId;
+  title: string;
+}[] = [
+  {
+    id: "backlog",
+    title: "Backlog",
+  },
+  {
+    id: "todo",
+    title: "To Do",
+  },
+  {
+    id: "in_progress",
+    title: "In Progress",
+  },
+  {
+    id: "review",
+    title: "Review",
+  },
+  {
+    id: "done",
+    title: "Done",
+  },
 ];
 
-export interface Subtask { id: string; title: string; done: boolean }
-export interface Attachment { id: string; name: string; size: number; dataUrl: string }
-export interface ActivityLog { id: string; ts: number; text: string }
+export interface Subtask {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
+export interface Attachment {
+  id: string;
+  name: string;
+  size: number;
+  dataUrl: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  ts: number;
+  text: string;
+}
 
 export interface Task {
   id: string;
@@ -25,15 +66,25 @@ export interface Task {
   priority: Priority;
   tags: string[];
   dueAt?: number;
+
   reminder?: "10m" | "1h" | "1d" | null;
+
   reminded?: boolean;
+
   recurring?: "none" | "daily" | "weekly" | "monthly";
+
   subtasks: Subtask[];
+
   attachments: Attachment[];
+
   notes?: string;
+
   activity: ActivityLog[];
+
   createdAt: number;
+
   completedAt?: number;
+
   order: number;
 }
 
@@ -45,138 +96,832 @@ export interface Board {
 }
 
 interface State {
+  
+  habits: Habit[];
+habitLogs: HabitLog[];
+xp: number;
+
+loadHabits: () => Promise<void>;
+
+addHabit: (
+  payload: any
+) => Promise<void>;
+
+updateHabit: (
+  id: number,
+  payload: any
+) => Promise<void>;
+
+toggleHabit: (
+  id: number
+) => Promise<void>;
+
+removeHabit: (
+  id: number
+) => Promise<void>;
+archiveHabit: (
+  id: number
+) => Promise<void>;
   boards: Board[];
+  
   tasks: Task[];
+
   activeBoardId: string;
+
   theme: "dark" | "light";
-  telegram: { chatId: string; enabled: boolean; dailyBriefing: boolean };
-  streak: { current: number; lastDay: string | null };
+
+  telegram: {
+    chatId: string;
+    enabled: boolean;
+    dailyBriefing: boolean;
+  };
+
+  streak: {
+    current: number;
+    lastDay: string | null;
+  };
+
+  loadTasks: () => Promise<void>;
+  loadBoards: () => Promise<void>;
+  addBoard: (name: string, emoji: string) => Promise<void>;
+
+  setTasks: (tasks: Task[]) => void;
+
   setActiveBoard: (id: string) => void;
-  addBoard: (name: string, emoji?: string) => string;
-  removeBoard: (id: string) => void;
-  renameBoard: (id: string, name: string, emoji?: string) => void;
-  addTask: (t: Partial<Task> & { boardId: string; title: string; column: ColumnId }) => string;
-  updateTask: (id: string, patch: Partial<Task>) => void;
-  removeTask: (id: string) => void;
-  moveTask: (id: string, column: ColumnId, order: number) => void;
+
+  addTask: (
+    t: Partial<Task> & {
+      boardId: string;
+      title: string;
+      column: ColumnId;
+    },
+  ) => Promise<string>;
+
+  updateTask: (id: string, patch: Partial<Task>) => Promise<void>;
+
+  removeTask: (id: string) => Promise<void>;
+
+  moveTask: (id: string, column: ColumnId, order: number, completedAt?: number) => Promise<void>;
+
   reorderInColumn: (boardId: string, column: ColumnId, ids: string[]) => void;
+
   toggleSubtask: (taskId: string, subId: string) => void;
+
   toggleTheme: () => void;
+
   setTelegram: (patch: Partial<State["telegram"]>) => void;
+
   bumpStreak: () => void;
+
   markReminded: (id: string) => void;
 }
 
-const uid = () => Math.random().toString(36).slice(2, 10);
+export interface HabitLog {
+  id: string;
+  habitId: string;
+  date: string;
+  completed: boolean;
+  completedAt?: number;
+}
 
-const seed = (): { boards: Board[]; tasks: Task[]; activeBoardId: string } => {
-  const b1: Board = { id: uid(), name: "BayTasks Launch", emoji: "🚀", createdAt: Date.now() };
-  const b2: Board = { id: uid(), name: "Personal", emoji: "🌙", createdAt: Date.now() };
-  const now = Date.now();
-  const t = (o: Partial<Task>): Task => ({
-    id: uid(), boardId: b1.id, column: "todo", title: "Untitled",
-    priority: "med", tags: [], subtasks: [], attachments: [], activity: [],
-    createdAt: now, order: 0, ...o,
-  } as Task);
-  const tasks: Task[] = [
-    t({ title: "Design dark glass UI", column: "done", priority: "high", tags: ["design"], order: 0, completedAt: now }),
-    t({ title: "Kanban drag & drop", column: "in_progress", priority: "urgent", tags: ["frontend"], order: 0,
-       subtasks: [{ id: uid(), title: "Column DnD", done: true }, { id: uid(), title: "Card DnD", done: false }] }),
-    t({ title: "Telegram reminders", column: "todo", priority: "high", tags: ["backend", "telegram"], order: 0,
-       dueAt: now + 1000 * 60 * 60 * 26, reminder: "1h" }),
-    t({ title: "Calendar view", column: "todo", priority: "med", tags: ["frontend"], order: 1 }),
-    t({ title: "Analytics dashboard", column: "review", priority: "med", tags: ["analytics"], order: 0 }),
-    t({ title: "Recurring tasks engine", column: "backlog", priority: "low", tags: ["backend"], order: 0 }),
-    t({ title: "Export to JSON / CSV", column: "backlog", priority: "low", tags: ["misc"], order: 1 }),
-  ];
-  return { boards: [b1, b2], tasks, activeBoardId: b1.id };
+export interface Habit {
+  id: string;
+
+  title: string;
+  description?: string;
+
+  emoji: string;
+
+  color: string;
+
+  frequency:
+    | "daily"
+    | "weekly";
+
+  target: number;
+
+  xp_per_completion: number;
+
+  archived: boolean;
+
+  createdAt: number;
+
+  logs: HabitLog[];
+}
+
+
+export const todayKey = (d: Date = new Date()) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 };
 
-export const useStore = create<State>()(
-  persist(
-    (set, get) => ({
-      ...seed(),
-      theme: "dark",
-      telegram: { chatId: "", enabled: false, dailyBriefing: true },
-      streak: { current: 1, lastDay: null },
+// XP curve: level n requires n*100 XP from previous; total to reach level L = 50*L*(L+1)
+export function xpToLevel(totalXp: number) {
+  let level = 1;
+  while (50 * level * (level + 1) <= totalXp) level++;
+  const prev = 50 * (level - 1) * level;
+  const next = 50 * level * (level + 1);
+  return { level, into: totalXp - prev, span: next - prev, next };
+}
 
-      setActiveBoard: (id) => set({ activeBoardId: id }),
-      addBoard: (name, emoji = "📋") => {
-        const id = uid();
-        set((s) => ({ boards: [...s.boards, { id, name, emoji, createdAt: Date.now() }], activeBoardId: id }));
-        return id;
-      },
-      removeBoard: (id) => set((s) => ({
-        boards: s.boards.filter((b) => b.id !== id),
-        tasks: s.tasks.filter((t) => t.boardId !== id),
-        activeBoardId: s.activeBoardId === id ? (s.boards.find((b) => b.id !== id)?.id ?? "") : s.activeBoardId,
-      })),
-      renameBoard: (id, name, emoji) => set((s) => ({
-        boards: s.boards.map((b) => b.id === id ? { ...b, name, emoji: emoji ?? b.emoji } : b),
-      })),
+export const RANK_TITLES: { min: number; title: string }[] = [
+  { min: 1, title: "Awakened" },
+  { min: 3, title: "Apprentice" },
+  { min: 5, title: "Discipline Hunter" },
+  { min: 8, title: "Iron Will" },
+  { min: 10, title: "Shadow Monarch" },
+  { min: 15, title: "Ascendant" },
+  { min: 20, title: "Sovereign" },
+];
 
-      addTask: (t) => {
-        const id = uid();
-        const order = get().tasks.filter((x) => x.boardId === t.boardId && x.column === t.column).length;
-        const task: Task = {
-          id, boardId: t.boardId, column: t.column, title: t.title,
-          description: t.description, priority: t.priority ?? "med",
-          tags: t.tags ?? [], dueAt: t.dueAt, reminder: t.reminder ?? null,
-          recurring: t.recurring ?? "none",
-          subtasks: t.subtasks ?? [], attachments: t.attachments ?? [],
-          notes: t.notes, activity: [{ id: uid(), ts: Date.now(), text: "Task created" }],
-          createdAt: Date.now(), order,
-        };
-        set((s) => ({ tasks: [...s.tasks, task] }));
-        return id;
-      },
-      updateTask: (id, patch) => set((s) => ({
-        tasks: s.tasks.map((t) => {
-          if (t.id !== id) return t;
-          const next = { ...t, ...patch };
-          if (patch.column && patch.column !== t.column) {
-            next.activity = [...t.activity, { id: uid(), ts: Date.now(), text: `Moved to ${patch.column}` }];
-            if (patch.column === "done" && !t.completedAt) next.completedAt = Date.now();
-            if (patch.column !== "done") next.completedAt = undefined;
-          }
-          return next;
-        }),
-      })),
-      removeTask: (id) => set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) })),
-      moveTask: (id, column, order) => set((s) => ({
-        tasks: s.tasks.map((t) => t.id === id ? { ...t, column, order } : t),
-      })),
-      reorderInColumn: (boardId, column, ids) => set((s) => ({
-        tasks: s.tasks.map((t) =>
-          t.boardId === boardId && t.column === column
-            ? { ...t, order: ids.indexOf(t.id) === -1 ? t.order : ids.indexOf(t.id) }
-            : t,
-        ),
-      })),
-      toggleSubtask: (taskId, subId) => set((s) => ({
-        tasks: s.tasks.map((t) => t.id === taskId ? {
-          ...t, subtasks: t.subtasks.map((x) => x.id === subId ? { ...x, done: !x.done } : x),
-        } : t),
-      })),
-      toggleTheme: () => set((s) => {
-        const next = s.theme === "dark" ? "light" : "dark";
-        if (typeof document !== "undefined") {
-          document.documentElement.classList.toggle("light", next === "light");
-        }
-        return { theme: next };
-      }),
-      setTelegram: (patch) => set((s) => ({ telegram: { ...s.telegram, ...patch } })),
-      bumpStreak: () => set((s) => {
-        const today = new Date().toDateString();
-        if (s.streak.lastDay === today) return {};
-        const yesterday = new Date(Date.now() - 86400000).toDateString();
-        const current = s.streak.lastDay === yesterday ? s.streak.current + 1 : 1;
-        return { streak: { current, lastDay: today } };
-      }),
-      markReminded: (id) => set((s) => ({
-        tasks: s.tasks.map((t) => t.id === id ? { ...t, reminded: true } : t),
-      })),
+export const rankFor = (level: number) =>
+  [...RANK_TITLES].reverse().find((r) => level >= r.min)?.title ?? "Awakened";
+
+
+
+
+export const useStore = create<State>()((set, get) => ({
+  habits: [],
+  habitLogs: [],
+xp: 0,
+  boards: [],
+
+  tasks: [],
+
+  activeBoardId: "1",
+
+  theme: "dark",
+
+  telegram: {
+    chatId: "",
+    enabled: false,
+    dailyBriefing: true,
+  },
+
+  streak: {
+    current: 1,
+    lastDay: null,
+  },
+
+  
+
+  // =========================
+  // LOAD TASKS
+  // =========================
+
+  loadTasks: async () => {
+    try {
+      const data = await taskApi.getAll();
+
+      set({
+        tasks: data,
+      });
+    } catch (err) {
+      console.error("LOAD TASKS ERROR", err);
+    }
+  },
+
+  // =========================
+// LOAD HABITS
+// =========================
+
+loadHabits: async () => {
+
+  try {
+
+    const data =
+      await habitApi.getAll();
+
+    const habits =
+      data.map(
+        (h: any) => ({
+
+          id:
+            String(h.id),
+
+          title:
+            h.title,
+
+          emoji:
+            h.emoji,
+
+          color:
+            h.color,
+
+          frequency:
+            h.frequency,
+
+          target:
+            h.target,
+
+          archived:
+            !!h.archived,
+
+          createdAt:
+            Date.now(),
+
+          logs:
+            (
+              h.logs ?? []
+            ).map(
+              (
+                log: any
+              ) => ({
+
+                id:
+                  String(
+                    log.id
+                  ),
+
+                date:
+                  String(
+                    log.date
+                  ).slice(
+                    0,
+                    10
+                  ),
+
+                completed:
+                  !!log.completed,
+
+                completedAt:
+                  log.completed_at
+                    ? new Date(
+                        log.completed_at
+                      ).getTime()
+                    : undefined,
+                })
+            ),
+        })
+      );
+
+      const habitLogs = habits.flatMap((h: any) =>
+      (h.logs ?? []).map((log: any) => ({
+        ...log,
+        habitId: h.id,
+      }))
+    );
+
+    const xp =
+      habits.reduce(
+        (
+          acc: number,
+          h: any
+        ) => {
+
+          return (
+            acc +
+            (
+              h.logs
+                ?.length ??
+              0
+            ) *
+              (h.xp_per_completion ?? 25)
+          );
+        },
+
+        0
+      );
+
+    set({
+      habits,
+      habitLogs,
+      xp,
+    });
+
+  } catch (err) {
+
+    console.error(
+      "LOAD HABITS ERROR",
+      err
+    );
+  }
+},
+
+// =========================
+// ADD HABIT
+// =========================
+
+addHabit: async (
+  payload
+) => {
+
+  try {
+
+    await habitApi.create(
+      payload
+    );
+
+    await get()
+      .loadHabits();
+
+    toast.success(
+      "Habit created"
+    );
+          new Audio(
+        "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
+      ).play();
+
+  } catch (err) {
+
+    console.error(
+      "ADD HABIT ERROR",
+      err
+    );
+  }
+},
+
+// =========================
+// TOGGLE HABIT
+// =========================
+
+toggleHabit: async (
+  id
+) => {
+
+  try {
+
+    await habitApi.toggle(
+      Number(id)
+    );
+
+    await get()
+      .loadHabits();
+
+          toast.success(
+      "Keren, lanjutkan"
+    );
+          new Audio(
+        "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
+      ).play();
+
+  } catch (err) {
+
+    console.error(
+      "TOGGLE HABIT ERROR",
+      err
+    );
+  }
+},
+
+// =========================
+// UPDATE HABIT
+// =========================
+
+updateHabit: async (
+  id,
+  payload
+) => {
+
+  try {
+
+    await habitApi.update(
+      Number(id),
+      payload
+    );
+
+    await get()
+      .loadHabits();
+
+    toast.success(
+      "Habit updated"
+    );
+
+  } catch (err) {
+
+    console.error(
+      "UPDATE HABIT ERROR",
+      err
+    );
+  }
+},
+
+// =========================
+// REMOVE HABIT
+// =========================
+
+removeHabit: async (
+  id
+) => {
+
+  try {
+
+    await habitApi.archive(
+      Number(id)
+    );
+
+    await get()
+      .loadHabits();
+
+    toast.success(
+      "Habit removed"
+    );
+
+  } catch (err) {
+
+    console.error(
+      "REMOVE HABIT ERROR",
+      err
+    );
+  }
+},
+archiveHabit: async (
+  id
+) => {
+
+  try {
+
+    await habitApi.archive(
+      id
+    );
+
+    await get()
+      .loadHabits();
+
+  } catch (err) {
+
+    console.error(
+      err
+    );
+  }
+},
+
+  // =========================
+  // LOAD BOARDS
+  // =========================
+
+  loadBoards: async () => {
+    try {
+      const data = await boardApi.getAll();
+
+      set({
+        boards: data.map((b: any) => ({
+          id: String(b.id),
+
+          name: b.name,
+
+          emoji: b.emoji ?? "🚀",
+
+          createdAt: Date.now(),
+        })),
+      });
+    } catch (err) {
+      console.error("LOAD BOARDS ERROR", err);
+    }
+  },
+
+  // =========================
+  // ADD BOARD
+  // =========================
+
+  addBoard: async (name, emoji) => {
+    try {
+      await boardApi.create({
+        project_id: 1,
+
+        name,
+
+        emoji,
+
+        position: get().boards.length,
+      });
+
+      await get().loadBoards();
+      // =========================
+      // SOUND EFFECT
+      // =========================
+      toast.success("Board added successfully");
+      new Audio(
+        "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
+      ).play();
+    } catch (err) {
+      console.error("ADD BOARD ERROR", err);
+    }
+  },
+
+  // =========================
+  // SET TASKS
+  // =========================
+
+  setTasks: (tasks) =>
+    set({
+      tasks,
     }),
-    { name: "baytasks-v1" },
-  ),
-);
+
+  // =========================
+  // ACTIVE BOARD
+  // =========================
+
+  setActiveBoard: (id) =>
+    set({
+      activeBoardId: id,
+    }),
+
+  // =========================
+  // ADD TASK
+  // =========================
+
+  addTask: async (t) => {
+    try {
+      const data = await taskApi.create({
+        board_id: t.boardId,
+
+        title: t.title,
+
+        description: t.description,
+
+        notes: t.notes,
+
+        column_key: t.column,
+
+        priority: t.priority ?? "med",
+
+        tags: t.tags ?? [],
+
+        due_at: t.dueAt ? new Date(t.dueAt).toISOString() : null,
+
+        reminder: t.reminder ?? null,
+
+        recurring: t.recurring ?? "none",
+
+        position: 0,
+      });
+
+      await get().loadTasks();
+      // =========================
+      // SOUND EFFECT
+      // =========================
+      toast.success("Task added successfully");
+      new Audio(
+        "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
+      ).play();
+      return data.task?.id ?? "";
+    } catch (err) {
+      console.error("ADD TASK ERROR", err);
+
+      return "";
+    }
+  },
+
+  // =========================
+  // UPDATE TASK
+  // =========================
+
+  updateTask: async (id, patch) => {
+    try {
+      await taskApi.update(id, {
+        title: patch.title,
+
+        description: patch.description,
+
+        notes: patch.notes,
+
+        column_key: patch.column,
+
+        priority: patch.priority,
+
+        tags: patch.tags,
+
+        due_at: patch.dueAt ? new Date(patch.dueAt).toISOString() : null,
+
+        reminder: patch.reminder,
+
+        recurring: patch.recurring,
+
+        completed_at: patch.completedAt ? new Date(patch.completedAt).toISOString() : null,
+
+        position: patch.order,
+      });
+
+      await get().loadTasks();
+      // =========================
+      // SOUND EFFECT
+      // =========================
+      toast.success("Task updated successfully");
+      new Audio(
+        "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
+      ).play();
+    } catch (err) {
+      console.error("UPDATE TASK ERROR", err);
+    }
+  },
+
+  // =========================
+  // DELETE TASK
+  // =========================
+
+  removeTask: async (id) => {
+    try {
+      await taskApi.remove(id);
+
+      await get().loadTasks();
+      // =========================
+      // SOUND EFFECT
+      // =========================
+      toast.success("Task deleted successfully");
+      new Audio(
+        "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
+      ).play();
+    } catch (err) {
+      console.error("DELETE TASK ERROR", err);
+    }
+  },
+
+  // =========================
+  // MOVE TASK
+  // =========================
+
+  moveTask: async (id, column, order, completedAt) => {
+    try {
+      const task = get().tasks.find((t) => t.id === id);
+
+      if (!task) return;
+
+      await get().updateTask(id, {
+        title: task.title,
+
+        description: task.description,
+
+        notes: task.notes,
+
+        column,
+
+        priority: task.priority,
+
+        tags: task.tags,
+
+        dueAt: task.dueAt,
+
+        reminder: task.reminder,
+
+        recurring: task.recurring,
+
+        completedAt: completedAt,
+
+        order,
+      });
+    } catch (err) {
+      console.error("MOVE TASK ERROR", err);
+    }
+  },
+
+  // =========================
+  // REORDER
+  // =========================
+
+  reorderInColumn: (boardId, column, ids) => {
+    const tasks = get().tasks.map((t) =>
+      t.boardId === boardId && t.column === column
+        ? {
+            ...t,
+
+            order: ids.indexOf(t.id),
+          }
+        : t,
+    );
+
+    set({
+      tasks,
+    });
+  },
+
+  // =========================
+  // SUBTASK
+  // =========================
+
+  toggleSubtask: (taskId, subId) => {
+    const task = get().tasks.find((t) => t.id === taskId);
+
+    if (!task) return;
+
+    const subtask = task.subtasks.find((s) => s.id === subId);
+
+    if (!subtask) return;
+
+    const nextDone = !subtask.done;
+
+    subtaskApi.toggle(subId, nextDone).catch((err) => {
+      console.error("TOGGLE SUBTASK ERROR", err);
+    });
+
+    set({
+      tasks: get().tasks.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+
+              subtasks: t.subtasks.map((s) =>
+                s.id === subId
+                  ? {
+                      ...s,
+                      done: nextDone,
+                    }
+                  : s,
+              ),
+            }
+          : t,
+      ),
+    });
+  },
+
+  // =========================
+  // THEME
+  // =========================
+
+  toggleTheme: () =>
+    set((s) => {
+      const next = s.theme === "dark" ? "light" : "dark";
+
+      if (typeof document !== "undefined") {
+        document.documentElement.classList.toggle("light", next === "light");
+      }
+
+      return {
+        theme: next,
+      };
+    }),
+
+  // =========================
+  // TELEGRAM
+  // =========================
+
+  setTelegram: (patch) =>
+    set((s) => ({
+      telegram: {
+        ...s.telegram,
+        ...patch,
+      },
+    })),
+
+  // =========================
+  // STREAK
+  // =========================
+  bumpStreak: () =>
+    set((s) => {
+      const completedDays = Array.from(
+        new Set(
+          s.tasks
+
+            .filter((t) => t.completedAt)
+
+            .map((t) => {
+              const d = new Date(t.completedAt!);
+
+              d.setHours(0, 0, 0, 0);
+
+              return d.getTime();
+            }),
+        ),
+      )
+
+        .sort((a, b) => b - a);
+
+      if (completedDays.length === 0) {
+        return {
+          streak: {
+            current: 0,
+
+            lastDay: null,
+          },
+        };
+      }
+
+      let current = 1;
+
+      for (let i = 0; i < completedDays.length - 1; i++) {
+        const diff = completedDays[i] - completedDays[i + 1];
+
+        if (diff === 86400000) {
+          current++;
+        } else {
+          break;
+        }
+      }
+
+      return {
+        streak: {
+          current,
+
+          lastDay: new Date(completedDays[0]).toDateString(),
+        },
+      };
+    }),
+
+  // =========================
+  // REMINDED
+  // =========================
+
+  markReminded: (id) =>
+    set((s) => ({
+      tasks: s.tasks.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              reminded: true,
+            }
+          : t,
+      ),
+    })),
+}));
