@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { useEffect, useMemo, useState } from "react";
-
+import { taskApi } from "@/lib/api";
 import { COLUMNS, ColumnId, useStore, Task } from "@/lib/store";
 
 import {
@@ -233,7 +233,7 @@ export function KanbanBoard({ search = "" }: { search?: string }) {
     reorderInColumn(activeBoardId, targetCol, next);
 
     try {
-      await boardApi.reorder(
+      await taskApi.reorder(
         next.map((id, index) => ({
           id,
           position: index,

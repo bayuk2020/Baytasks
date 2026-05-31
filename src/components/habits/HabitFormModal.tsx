@@ -171,16 +171,14 @@ export function HabitFormModal({ habit, onClose }: Props) {
           }}
           onClick={(e) => e.stopPropagation()}
           className="
-            relative
-
-            w-full
-            max-w-lg
-
-            rounded-2xl
-
-            p-6
-
-            glass-strong
+  w-full
+  max-w-lg
+  max-h-[90vh]
+  overflow-y-auto
+  glass-strong
+  rounded-2xl
+  p-6
+  relative
           "
         >
           {/* CLOSE */}

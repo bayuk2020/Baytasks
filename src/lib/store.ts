@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { create } from "zustand";
 import { useEffect } from "react";
-import { taskApi, subtaskApi } from "@/lib/api";
+import { taskApi, subtaskApi, journalApi, } from "@/lib/api";
 import { toast } from "sonner";
 import { boardApi } from "@/lib/api";
 
@@ -11,6 +11,55 @@ import {
 export type Priority = "low" | "med" | "high" | "urgent";
 
 export type ColumnId = "backlog" | "todo" | "in_progress" | "review" | "done";
+
+export type Mood =
+
+  | "great"
+  | "good"
+  | "neutral"
+  | "low"
+  | "bad";
+
+export type NotifType =
+
+  | "task_overdue"
+  | "habit_missed"
+  | "pomodoro_done"
+  | "recurring_created"
+  | "task_completed"
+  | "info";
+
+export interface Notification {
+
+  id: string;
+
+  type: NotifType;
+
+  title: string;
+
+  message: string;
+
+  read: boolean;
+
+  createdAt: number;
+}
+
+export interface Journal {
+
+  id: string;
+
+  title: string;
+
+  content: string;
+
+  mood: Mood;
+
+  tags: string[];
+
+  createdAt: number;
+
+  updatedAt: number;
+}
 
 export const COLUMNS: {
   id: ColumnId;
@@ -96,7 +145,31 @@ export interface Board {
 }
 
 interface State {
-  
+
+  notifications: Notification[];
+
+markNotificationRead: (
+  id: string
+) => void;
+
+markAllNotificationsRead: () => void;
+
+clearNotifications: () => void;
+
+  journals: Journal[];
+
+addJournal: (
+  journal: Partial<Journal>
+) => Promise<string>;
+
+updateJournal: (
+  id: string,
+  patch: Partial<Journal>
+) => Promise<void>;
+
+removeJournal: (
+  id: string
+) => Promise<void>;
   habits: Habit[];
 habitLogs: HabitLog[];
 xp: number;
@@ -120,8 +193,11 @@ removeHabit: (
   id: number
 ) => Promise<void>;
 archiveHabit: (
-  id: number
+  id: number,
 ) => Promise<void>;
+
+loadJournals: () => Promise<void>;
+
   boards: Board[];
   
   tasks: Task[];
@@ -243,6 +319,8 @@ export const rankFor = (level: number) =>
 
 
 export const useStore = create<State>()((set, get) => ({
+  notifications: [],
+  journals: [],
   habits: [],
   habitLogs: [],
 xp: 0,
@@ -280,6 +358,247 @@ xp: 0,
       });
     } catch (err) {
       console.error("LOAD TASKS ERROR", err);
+    }
+  },
+
+  // =========================
+// NOTIFICATIONS
+// =========================
+
+markNotificationRead:
+  (id) =>
+
+    set((s) => ({
+
+      notifications:
+
+        s.notifications.map(
+          (n) =>
+
+            n.id === id
+
+              ? {
+                  ...n,
+                  read: true,
+                }
+
+              : n
+        ),
+    })),
+
+markAllNotificationsRead:
+  () =>
+
+    set((s) => ({
+
+      notifications:
+
+        s.notifications.map(
+          (n) => ({
+            ...n,
+            read: true,
+          })
+        ),
+    })),
+
+clearNotifications:
+  () =>
+
+    set({
+
+      notifications: [],
+    }),
+
+  // =========================
+// LOAD JOURNALS
+// =========================
+
+loadJournals: async () => {
+
+  try {
+
+    const data =
+      await journalApi.getAll();
+    console.log(data);
+    set({
+
+  journals:
+
+    (data ?? []).map(
+          (j: any) => ({
+
+            id:
+              String(j.id),
+
+            title:
+              j.title,
+
+            content:
+              j.content,
+
+            mood:
+              j.mood,
+
+            tags:
+           (j.tags ?? []).map(
+                (t: any) =>
+                  t.tag
+              ),
+
+            createdAt:
+              new Date(
+                j.created_at
+              ).getTime(),
+
+            updatedAt:
+              new Date(
+                j.updated_at
+              ).getTime(),
+          })
+        ),
+    });
+
+  } catch (err) {
+
+    console.error(
+      "LOAD JOURNALS ERROR",
+      err
+    );
+  }
+},
+
+// =========================
+// ADD JOURNAL
+// =========================
+
+addJournal:
+  async (journal) => {
+
+    try {
+
+      const created =
+        await journalApi.create({
+
+                title:
+              journal.title ??
+              "Untitled",
+
+          content:
+            journal.content,
+
+          mood:
+            journal.mood,
+
+          tags:
+            journal.tags,
+        });
+
+      await get()
+        .loadJournals();
+
+      return String(
+        created.id
+      );
+
+    } catch (err) {
+
+      console.error(
+        "ADD JOURNAL ERROR",
+        err
+      );
+
+      return "";
+    }
+  },
+
+// =========================
+// UPDATE JOURNAL
+// =========================
+
+updateJournal:
+  async (
+    id,
+    patch
+  ) => {
+
+    try {
+
+      // optimistic update
+      set((s) => ({
+
+        journals:
+
+          s.journals.map(
+            (j) =>
+
+              j.id === id
+
+                ? {
+
+                    ...j,
+
+                    ...patch,
+
+                    updatedAt:
+                      Date.now(),
+                  }
+
+                : j
+          ),
+      }));
+
+      // backend save
+      await journalApi.update(
+
+        Number(id),
+
+        {
+
+          title:
+            patch.title,
+
+          content:
+            patch.content,
+
+          mood:
+            patch.mood,
+
+          tags:
+            patch.tags,
+        }
+      );
+console.log(patch);
+    } catch (err) {
+
+      console.error(
+        "UPDATE JOURNAL ERROR",
+        err
+      );
+    }
+  },
+
+// =========================
+// REMOVE JOURNAL
+// =========================
+
+removeJournal:
+  async (id) => {
+
+    try {
+
+      await journalApi.remove(
+        Number(id)
+      );
+
+      await get()
+        .loadJournals();
+
+    } catch (err) {
+
+      console.error(
+        "REMOVE JOURNAL ERROR",
+        err
+      );
     }
   },
 
@@ -437,25 +756,61 @@ addHabit: async (
 // TOGGLE HABIT
 // =========================
 
-toggleHabit: async (
-  id
-) => {
-
+toggleHabit: async (id) => {
   try {
 
-    await habitApi.toggle(
-      Number(id)
+    const today = todayKey();
+
+    const state = get();
+
+    const existing = state.habitLogs.find(
+      (l) =>
+        Number(l.habitId) === Number(id) &&
+        l.date === today
     );
 
-    await get()
-      .loadHabits();
+    // =========================
+    // OPTIMISTIC UPDATE
+    // =========================
 
-          toast.success(
+    if (existing) {
+
+      set({
+        habitLogs: state.habitLogs.filter(
+          (l) => l.id !== existing.id
+        ),
+      });
+
+    } else {
+
+      set({
+        habitLogs: [
+          ...state.habitLogs,
+          {
+            id: `temp-${Date.now()}`,
+            habitId: String(id),
+            date: today,
+            completed: true,
+            completedAt: Date.now(),
+          },
+        ],
+      });
+
+    }
+
+    // =========================
+    // API
+    // =========================
+
+    await habitApi.toggle(Number(id));
+
+    toast.success(
       "Keren, lanjutkan"
     );
-          new Audio(
-        "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
-      ).play();
+
+    new Audio(
+      "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
+    ).play();
 
   } catch (err) {
 
@@ -463,6 +818,9 @@ toggleHabit: async (
       "TOGGLE HABIT ERROR",
       err
     );
+
+    // kalau gagal sync ulang
+    await get().loadHabits();
   }
 },
 
@@ -527,6 +885,7 @@ removeHabit: async (
     );
   }
 },
+
 archiveHabit: async (
   id
 ) => {
@@ -668,66 +1027,92 @@ archiveHabit: async (
   // =========================
   // UPDATE TASK
   // =========================
+updateTask: async (id, patch) => {
+  try {
 
-  updateTask: async (id, patch) => {
-    try {
-      await taskApi.update(id, {
-        title: patch.title,
+    // UPDATE UI DULU
+    set({
+      tasks: get().tasks.map((task) =>
+        task.id === id
+          ? {
+              ...task,
+              ...patch,
+            }
+          : task,
+      ),
+    });
 
-        description: patch.description,
+    await taskApi.update(id, {
+      title: patch.title,
+      description: patch.description,
+      notes: patch.notes,
+      column_key: patch.column,
+      priority: patch.priority,
+      tags: patch.tags,
+      due_at: patch.dueAt
+        ? new Date(patch.dueAt).toISOString()
+        : null,
+      reminder: patch.reminder,
+      recurring: patch.recurring,
+      completed_at: patch.completedAt
+        ? new Date(patch.completedAt).toISOString()
+        : null,
+      position: patch.order,
+    });
 
-        notes: patch.notes,
+    toast.success("Task updated successfully");
 
-        column_key: patch.column,
+    new Audio(
+      "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
+    ).play();
 
-        priority: patch.priority,
+  } catch (err) {
 
-        tags: patch.tags,
+    console.error("UPDATE TASK ERROR", err);
 
-        due_at: patch.dueAt ? new Date(patch.dueAt).toISOString() : null,
-
-        reminder: patch.reminder,
-
-        recurring: patch.recurring,
-
-        completed_at: patch.completedAt ? new Date(patch.completedAt).toISOString() : null,
-
-        position: patch.order,
-      });
-
-      await get().loadTasks();
-      // =========================
-      // SOUND EFFECT
-      // =========================
-      toast.success("Task updated successfully");
-      new Audio(
-        "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
-      ).play();
-    } catch (err) {
-      console.error("UPDATE TASK ERROR", err);
-    }
-  },
+    await get().loadTasks();
+  }
+},
 
   // =========================
   // DELETE TASK
   // =========================
+removeTask: async (id) => {
 
-  removeTask: async (id) => {
-    try {
-      await taskApi.remove(id);
+  const oldTasks = get().tasks;
 
-      await get().loadTasks();
-      // =========================
-      // SOUND EFFECT
-      // =========================
-      toast.success("Task deleted successfully");
-      new Audio(
-        "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
-      ).play();
-    } catch (err) {
-      console.error("DELETE TASK ERROR", err);
-    }
-  },
+  // HAPUS DARI UI DULU
+  set({
+    tasks: oldTasks.filter(
+      (task) => task.id !== id
+    ),
+  });
+
+  try {
+
+    await taskApi.remove(id);
+
+    toast.success(
+      "Task deleted successfully"
+    );
+
+    new Audio(
+      "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
+    ).play();
+
+  } catch (err) {
+
+    console.error(
+      "DELETE TASK ERROR",
+      err,
+    );
+
+    // rollback kalau gagal
+    set({
+      tasks: oldTasks,
+    });
+  }
+},
 
   // =========================
   // MOVE TASK

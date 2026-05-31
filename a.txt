@@ -471,3 +471,12 @@ function Analytics() {
 \routes\web.php
 
 store.tsx, calendar.tsx, index.tsx (untuk halaman dashboard), api.tsx, dan analytics.tsx
+
+src/component/HabitCard.tsx
+src/component/HabitFormModal.tsx
+src/component/HabitHeatmap.tsx
+src/component/HabitModal.tsx
+src/component/Heatmap.tsx
+src/component/StatsWidgets.tsx
+src/component/XPBar.tsx
+src\routes\habits.tsx

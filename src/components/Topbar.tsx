@@ -1,12 +1,14 @@
-import { Bell, Search, Sun, Moon } from "lucide-react";
+/* eslint-disable prettier/prettier */
+import { Search, Sun, Moon, Command } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { useReminders } from "@/lib/useReminders";
-import { useState } from "react";
+import { NotificationBell } from "./NotificationCenter";
 
-export function Topbar({ onSearch, search }: { onSearch?: (q: string) => void; search?: string }) {
+export function Topbar({ onSearch, search, onOpenPalette }: {
+  onSearch?: (q: string) => void;
+  search?: string;
+  onOpenPalette?: () => void;
+}) {
   const { theme, toggleTheme } = useStore();
-  const { active } = useReminders();
-  const [open, setOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-30 glass-strong border-b border-border">
@@ -21,45 +23,21 @@ export function Topbar({ onSearch, search }: { onSearch?: (q: string) => void; s
           />
         </div>
         <button
+          onClick={onOpenPalette}
+          className="hidden sm:inline-flex items-center gap-2 h-9 px-3 rounded-lg border border-border hover:border-primary/50 hover:text-primary transition text-xs text-muted-foreground"
+        >
+          <Command className="h-3.5 w-3.5" />
+          <span>Quick find</span>
+          <kbd className="ml-1 text-[10px] px-1.5 py-0.5 rounded border border-border">⌘K</kbd>
+        </button>
+        <button
           onClick={toggleTheme}
           className="h-9 w-9 grid place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary transition"
           aria-label="Toggle theme"
         >
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
-        <div className="relative">
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className="relative h-9 w-9 grid place-items-center rounded-lg border border-border hover:border-primary/40 transition"
-            aria-label="Notifications"
-          >
-            <Bell className="h-4 w-4" />
-            {active.length > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold grid place-items-center pulse-neon">
-                {active.length}
-              </span>
-            )}
-          </button>
-          {open && (
-            <div className="absolute right-0 mt-2 w-80 glass-strong rounded-xl p-3 shadow-card">
-              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Reminders</div>
-              {active.length === 0 ? (
-                <div className="text-sm text-muted-foreground py-6 text-center">All clear ✨</div>
-              ) : (
-                <ul className="space-y-2 max-h-72 overflow-y-auto">
-                  {active.map((t) => (
-                    <li key={t.id} className="rounded-lg p-2.5 bg-secondary/60 border border-border">
-                      <div className="text-sm font-medium">{t.title}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {t.dueAt ? new Date(t.dueAt).toLocaleString() : ""}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </div>
+        <NotificationBell />
       </div>
     </header>
   );

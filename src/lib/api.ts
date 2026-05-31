@@ -46,6 +46,23 @@ export const taskApi = {
     request(`/tasks/${id}`, {
       method: "DELETE",
     }),
+      // =========================
+  // REORDER
+  // =========================
+
+  reorder: (
+    tasks: {
+      id: string;
+      position: number;
+    }[],
+  ) =>
+    request("/tasks/reorder", {
+      method: "POST",
+
+      body: JSON.stringify({
+        tasks,
+      }),
+    }), 
 };
 
 // =========================
@@ -146,24 +163,7 @@ export const boardApi = {
       method: "DELETE",
     }),
 
-  // =========================
-  // REORDER
-  // =========================
-
-  reorder: (
-    boards: {
-      id: string;
-      position: number;
-    }[],
-  ) =>
-    request("/boards/reorder", {
-      method: "POST",
-
-      body: JSON.stringify({
-        boards,
-      }),
-    }),
-    
+   
 };
 
 // =========================
@@ -275,4 +275,101 @@ remove: (
       method: "DELETE",
     }
   ),
+};
+
+// =========================
+// JOURNALS
+// =========================
+
+export type JournalPayload = {
+
+  title: string;
+
+  content?: string;
+
+  mood?:
+    | "great"
+    | "good"
+    | "neutral"
+    | "low"
+    | "bad";
+
+  tags?: string[];
+};
+
+export const journalApi = {
+
+  // =========================
+  // GET ALL
+  // =========================
+
+  getAll: () =>
+    request(
+      "/journals"
+    ),
+
+  // =========================
+  // CREATE
+  // =========================
+
+  create: (
+    payload: JournalPayload
+  ) =>
+
+    request(
+
+      "/journals",
+
+      {
+
+        method: "POST",
+
+        body: JSON.stringify(
+          payload
+        ),
+      }
+    ),
+
+  // =========================
+  // UPDATE
+  // =========================
+
+  update: (
+
+    id: number,
+
+    payload: Partial<JournalPayload>
+
+  ) =>
+
+    request(
+
+      `/journals/${id}`,
+
+      {
+
+        method: "PATCH",
+
+        body: JSON.stringify(
+          payload
+        ),
+      }
+    ),
+
+  // =========================
+  // DELETE
+  // =========================
+
+  remove: (
+    id: number
+  ) =>
+
+    request(
+
+      `/journals/${id}`,
+
+      {
+        method: "DELETE",
+      }
+    ),
 };

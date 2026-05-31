@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PomodoroRouteImport } from './routes/pomodoro'
+import { Route as JournalRouteImport } from './routes/journal'
+import { Route as IndexoldRouteImport } from './routes/indexold'
 import { Route as HabitsRouteImport } from './routes/habits'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as CalendarRouteImport } from './routes/calendar'
@@ -26,6 +28,16 @@ const SettingsRoute = SettingsRouteImport.update({
 const PomodoroRoute = PomodoroRouteImport.update({
   id: '/pomodoro',
   path: '/pomodoro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JournalRoute = JournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexoldRoute = IndexoldRouteImport.update({
+  id: '/indexold',
+  path: '/indexold',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HabitsRoute = HabitsRouteImport.update({
@@ -66,6 +78,8 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof CalendarRoute
   '/docs': typeof DocsRoute
   '/habits': typeof HabitsRoute
+  '/indexold': typeof IndexoldRoute
+  '/journal': typeof JournalRoute
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
 }
@@ -76,6 +90,8 @@ export interface FileRoutesByTo {
   '/calendar': typeof CalendarRoute
   '/docs': typeof DocsRoute
   '/habits': typeof HabitsRoute
+  '/indexold': typeof IndexoldRoute
+  '/journal': typeof JournalRoute
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
 }
@@ -87,6 +103,8 @@ export interface FileRoutesById {
   '/calendar': typeof CalendarRoute
   '/docs': typeof DocsRoute
   '/habits': typeof HabitsRoute
+  '/indexold': typeof IndexoldRoute
+  '/journal': typeof JournalRoute
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
 }
@@ -99,6 +117,8 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/docs'
     | '/habits'
+    | '/indexold'
+    | '/journal'
     | '/pomodoro'
     | '/settings'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +129,8 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/docs'
     | '/habits'
+    | '/indexold'
+    | '/journal'
     | '/pomodoro'
     | '/settings'
   id:
@@ -119,6 +141,8 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/docs'
     | '/habits'
+    | '/indexold'
+    | '/journal'
     | '/pomodoro'
     | '/settings'
   fileRoutesById: FileRoutesById
@@ -130,6 +154,8 @@ export interface RootRouteChildren {
   CalendarRoute: typeof CalendarRoute
   DocsRoute: typeof DocsRoute
   HabitsRoute: typeof HabitsRoute
+  IndexoldRoute: typeof IndexoldRoute
+  JournalRoute: typeof JournalRoute
   PomodoroRoute: typeof PomodoroRoute
   SettingsRoute: typeof SettingsRoute
 }
@@ -148,6 +174,20 @@ declare module '@tanstack/react-router' {
       path: '/pomodoro'
       fullPath: '/pomodoro'
       preLoaderRoute: typeof PomodoroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal': {
+      id: '/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof JournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/indexold': {
+      id: '/indexold'
+      path: '/indexold'
+      fullPath: '/indexold'
+      preLoaderRoute: typeof IndexoldRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/habits': {
@@ -202,6 +242,8 @@ const rootRouteChildren: RootRouteChildren = {
   CalendarRoute: CalendarRoute,
   DocsRoute: DocsRoute,
   HabitsRoute: HabitsRoute,
+  IndexoldRoute: IndexoldRoute,
+  JournalRoute: JournalRoute,
   PomodoroRoute: PomodoroRoute,
   SettingsRoute: SettingsRoute,
 }
