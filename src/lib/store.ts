@@ -1,66 +1,91 @@
 /* eslint-disable prettier/prettier */
 import { create } from "zustand";
 import { useEffect } from "react";
-import { taskApi, subtaskApi, journalApi, } from "@/lib/api";
+import { taskApi, subtaskApi, journalApi, bookApi, bookNoteApi } from "@/lib/api";
 import { toast } from "sonner";
 import { boardApi } from "@/lib/api";
-
 import {
   habitApi,
 } from "@/lib/api";
 export type Priority = "low" | "med" | "high" | "urgent";
-
 export type ColumnId = "backlog" | "todo" | "in_progress" | "review" | "done";
-
 export type Mood =
-
   | "great"
   | "good"
   | "neutral"
   | "low"
   | "bad";
-
 export type NotifType =
-
   | "task_overdue"
   | "habit_missed"
   | "pomodoro_done"
   | "recurring_created"
   | "task_completed"
   | "info";
-
 export interface Notification {
-
   id: string;
-
   type: NotifType;
-
   title: string;
-
   message: string;
-
   read: boolean;
-
   createdAt: number;
 }
-
-export interface Journal {
-
+export type BookStatus =
+  | "reading"
+  | "completed"
+  | "paused"
+  | "wishlist";
+export interface Book {
   id: string;
 
   title: string;
+  author: string;
 
-  content: string;
+  coverImage: string;
+  coverPath?: string;
 
-  mood: Mood;
+  format:
+    | "pdf"
+    | "physical"
+    | "both";
 
-  tags: string[];
+  filePath?: string;
+
+  totalPages: number;
+  currentPage: number;
+
+  status: BookStatus;
 
   createdAt: number;
-
   updatedAt: number;
 }
-
+export interface BookNote {
+  id: string;
+  bookId: string;
+  pageNumber: number;
+  chapter: string;
+  title: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+}
+export interface ReadingSession {
+  id: string;
+  bookId: string;
+  previousPage: number;
+  newPage: number;
+  pagesRead: number;
+  createdAt: number;
+}
+export interface Journal {
+  id: string;
+  title: string;
+  content: string;
+  mood: Mood;
+  tags: string[];
+  createdAt: number;
+  updatedAt: number;
+}
 export const COLUMNS: {
   id: ColumnId;
   title: string;
@@ -86,26 +111,22 @@ export const COLUMNS: {
     title: "Done",
   },
 ];
-
 export interface Subtask {
   id: string;
   title: string;
   done: boolean;
 }
-
 export interface Attachment {
   id: string;
   name: string;
   size: number;
   dataUrl: string;
 }
-
 export interface ActivityLog {
   id: string;
   ts: number;
   text: string;
 }
-
 export interface Task {
   id: string;
   boardId: string;
@@ -115,116 +136,108 @@ export interface Task {
   priority: Priority;
   tags: string[];
   dueAt?: number;
-
   reminder?: "10m" | "1h" | "1d" | null;
-
   reminded?: boolean;
-
   recurring?: "none" | "daily" | "weekly" | "monthly";
-
   subtasks: Subtask[];
-
   attachments: Attachment[];
-
   notes?: string;
-
   activity: ActivityLog[];
-
   createdAt: number;
-
   completedAt?: number;
-
   order: number;
 }
-
 export interface Board {
   id: string;
   name: string;
   emoji: string;
   createdAt: number;
 }
-
 interface State {
-
+    books: Book[];
+bookNotes: BookNote[];
+readingSessions: ReadingSession[];
   notifications: Notification[];
-
+loadBooks: () => Promise<void>;
+addBook: (
+  payload: any
+) => Promise<string>;
+updateBook: (
+  id: string,
+  payload: any
+) => Promise<void>;
+removeBook: (
+  id: string
+) => Promise<void>;
+setBookProgress: (
+  id: string,
+  currentPage: number
+) => Promise<void>;
+addBookNote: (
+  payload: any
+) => Promise<string>;
+updateBookNote: (
+  id: string,
+  payload: any
+) => Promise<void>;
+removeBookNote: (
+  id: string
+) => Promise<void>;
 markNotificationRead: (
   id: string
 ) => void;
-
 markAllNotificationsRead: () => void;
-
 clearNotifications: () => void;
-
   journals: Journal[];
-
 addJournal: (
   journal: Partial<Journal>
 ) => Promise<string>;
-
 updateJournal: (
   id: string,
   patch: Partial<Journal>
 ) => Promise<void>;
-
 removeJournal: (
   id: string
 ) => Promise<void>;
   habits: Habit[];
 habitLogs: HabitLog[];
 xp: number;
-
 loadHabits: () => Promise<void>;
-
 addHabit: (
   payload: any
 ) => Promise<void>;
-
 updateHabit: (
   id: number,
   payload: any
 ) => Promise<void>;
-
 toggleHabit: (
   id: number
 ) => Promise<void>;
-
 removeHabit: (
   id: number
 ) => Promise<void>;
 archiveHabit: (
   id: number,
 ) => Promise<void>;
-
 loadJournals: () => Promise<void>;
-
   boards: Board[];
-  
   tasks: Task[];
-
   activeBoardId: string;
-
   theme: "dark" | "light";
-
   telegram: {
     chatId: string;
     enabled: boolean;
     dailyBriefing: boolean;
   };
-
   streak: {
     current: number;
     lastDay: string | null;
   };
-
   loadTasks: () => Promise<void>;
   loadBoards: () => Promise<void>;
   addBoard: (name: string, emoji: string) => Promise<void>;
-
   setTasks: (tasks: Task[]) => void;
-
   setActiveBoard: (id: string) => void;
-
   addTask: (
     t: Partial<Task> & {
       boardId: string;
@@ -232,26 +245,16 @@ loadJournals: () => Promise<void>;
       column: ColumnId;
     },
   ) => Promise<string>;
-
   updateTask: (id: string, patch: Partial<Task>) => Promise<void>;
-
   removeTask: (id: string) => Promise<void>;
-
   moveTask: (id: string, column: ColumnId, order: number, completedAt?: number) => Promise<void>;
-
   reorderInColumn: (boardId: string, column: ColumnId, ids: string[]) => void;
-
   toggleSubtask: (taskId: string, subId: string) => void;
-
   toggleTheme: () => void;
-
   setTelegram: (patch: Partial<State["telegram"]>) => void;
-
   bumpStreak: () => void;
-
   markReminded: (id: string) => void;
 }
-
 export interface HabitLog {
   id: string;
   habitId: string;
@@ -259,40 +262,27 @@ export interface HabitLog {
   completed: boolean;
   completedAt?: number;
 }
-
 export interface Habit {
   id: string;
-
   title: string;
   description?: string;
-
   emoji: string;
-
   color: string;
-
   frequency:
     | "daily"
     | "weekly";
-
   target: number;
-
   xp_per_completion: number;
-
   archived: boolean;
-
   createdAt: number;
-
   logs: HabitLog[];
 }
-
-
 export const todayKey = (d: Date = new Date()) => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
-
 // XP curve: level n requires n*100 XP from previous; total to reach level L = 50*L*(L+1)
 export function xpToLevel(totalXp: number) {
   let level = 1;
@@ -301,7 +291,6 @@ export function xpToLevel(totalXp: number) {
   const next = 50 * level * (level + 1);
   return { level, into: totalXp - prev, span: next - prev, next };
 }
-
 export const RANK_TITLES: { min: number; title: string }[] = [
   { min: 1, title: "Awakened" },
   { min: 3, title: "Apprentice" },
@@ -311,48 +300,403 @@ export const RANK_TITLES: { min: number; title: string }[] = [
   { min: 15, title: "Ascendant" },
   { min: 20, title: "Sovereign" },
 ];
-
 export const rankFor = (level: number) =>
   [...RANK_TITLES].reverse().find((r) => level >= r.min)?.title ?? "Awakened";
-
-
-
-
+export const BOOK_STATUS_META: Record<
+  BookStatus,
+  {
+    label: string;
+    color: string;
+  }
+> = {
+  reading: {
+    label: "Reading",
+    color: "var(--neon)",
+  },
+  completed: {
+    label: "Completed",
+    color: "oklch(0.72 0.16 165)",
+  },
+  paused: {
+    label: "Paused",
+    color: "oklch(0.78 0.15 90)",
+  },
+  wishlist: {
+    label: "Wishlist",
+    color: "oklch(0.7 0.2 305)",
+  },
+};
+export const bookProgress = (
+  b: Pick<Book, "currentPage" | "totalPages">
+) =>
+  b.totalPages > 0
+    ? Math.min(
+        100,
+        Math.round(
+          (b.currentPage / b.totalPages) * 100
+        )
+      )
+    : 0;
 export const useStore = create<State>()((set, get) => ({
+  books: [],
+bookNotes: [],
+readingSessions: [],
   notifications: [],
   journals: [],
   habits: [],
   habitLogs: [],
 xp: 0,
   boards: [],
-
   tasks: [],
-
   activeBoardId: "1",
-
   theme: "dark",
-
   telegram: {
     chatId: "",
     enabled: false,
     dailyBriefing: true,
   },
-
   streak: {
     current: 1,
     lastDay: null,
   },
+   // =========================
+  // LOAD BOOKS
+  // =========================
+  loadBooks: async () => {
+  try {
+    const data =
+      await bookApi.getAll();
+set({
+  books: (data.books ?? []).map((b: any) => ({
+    id: String(b.id),
+    title: b.title,
+    author: b.author,
+    coverImage:
+    b.cover_image ?? "",
 
-  
+  coverPath:
+    b.cover_path ?? "",
 
+  format:
+    b.format ?? "physical",
+
+  filePath:
+  b.file_path ?? "",
+    totalPages: b.total_pages ?? 0,
+    currentPage: b.current_page ?? 0,
+    status: b.status,
+    createdAt: new Date(
+      b.created_at
+    ).getTime(),
+    updatedAt: new Date(
+      b.updated_at
+    ).getTime(),
+  })),
+bookNotes:
+(data.bookNotes ?? []).map(
+  (n: any) => ({
+    id:
+      String(n.id),
+    bookId:
+      String(
+        n.book_id
+      ),
+    pageNumber:
+      n.page_number,
+    chapter:
+      n.chapter ?? "",
+    title:
+      n.title ?? "",
+    content:
+      n.content ?? "",
+    createdAt:
+      new Date(
+        n.created_at
+      ).getTime(),
+    updatedAt:
+      new Date(
+        n.updated_at
+      ).getTime(),
+  })
+),
+  readingSessions:
+    (data.readingSessions ?? []).map(
+      (s: any) => ({
+        id: String(s.id),
+        bookId: String(
+          s.book_id
+        ),
+        previousPage:
+          s.previous_page,
+        newPage:
+          s.new_page,
+        pagesRead:
+          s.pages_read,
+        createdAt: new Date(
+          s.created_at
+        ).getTime(),
+      })
+    ),
+});
+  } catch (err) {
+    console.error(
+      "LOAD BOOKS ERROR",
+      err
+    );
+  }
+},
+// ADDBOOKS
+addBook: async (
+  payload
+) => {
+  try {
+const data =
+  await bookApi.create(
+    payload
+  );
+set((s) => ({
+  books: [
+    data.book,
+    ...s.books,
+  ],
+}));
+    toast.success(
+      "Book added"
+    );
+    return data.book?.id ?? "";
+  } catch (err) {
+    console.error(
+      "ADD BOOK ERROR",
+      err
+    );
+    return "";
+  }
+},
+// =========================
+// UPDATE BOOK
+// =========================
+updateBook: async (
+  id,
+  payload
+) => {
+  try {
+    // Optimistic update
+    set((s) => ({
+      books:
+        s.books.map(
+          (b) =>
+            String(b.id) ===
+            String(id)
+              ? {
+                  ...b,
+                  ...payload,
+                  updatedAt:
+                    Date.now(),
+                }
+              : b
+        ),
+    }));
+    await bookApi.update(
+      id,
+      payload
+    );
+    toast.success(
+      "Book updated"
+    );
+  } catch (err) {
+    console.error(
+      "UPDATE BOOK ERROR",
+      err
+    );
+    await get()
+      .loadBooks();
+  }
+},
+// =========================
+// REMOVE BOOK
+// =========================
+removeBook: async (
+  id
+) => {
+  try {
+    // Optimistic update
+    set((s) => ({
+      books:
+        s.books.filter(
+          (b) =>
+            String(b.id) !==
+            String(id)
+        ),
+      bookNotes:
+        s.bookNotes.filter(
+          (n) =>
+            String(n.bookId) !==
+            String(id)
+        ),
+      readingSessions:
+        s.readingSessions.filter(
+          (r) =>
+            String(r.bookId) !==
+            String(id)
+        ),
+    }));
+    await bookApi.remove(
+      id
+    );
+    toast.success(
+      "Book removed"
+    );
+  } catch (err) {
+    console.error(
+      "REMOVE BOOK ERROR",
+      err
+    );
+    // rollback
+    await get()
+      .loadBooks();
+  }
+},
+// =========================
+// SET BOOK PROGRESS
+// =========================
+setBookProgress: async (
+  id,
+  currentPage
+) => {
+  try {
+    set((s) => ({
+      books:
+        s.books.map(
+          (b) =>
+            String(b.id) ===
+            String(id)
+              ? {
+                  ...b,
+                  currentPage,
+                  updatedAt:
+                    Date.now(),
+                }
+              : b
+        ),
+    }));
+    await bookApi.updateProgress(
+      id,
+      currentPage
+    );
+    toast.success(
+      "Progress updated"
+    );
+  } catch (err) {
+    console.error(
+      "UPDATE PROGRESS ERROR",
+      err
+    );
+    await get()
+      .loadBooks();
+  }
+},
+// =========================
+// ADD BOOK NOTE
+// =========================
+addBookNote: async (
+  payload
+) => {
+  try {
+    const data =
+      await bookNoteApi.create({
+        book_id:
+          Number(
+            payload.bookId
+          ),
+        page_number:
+          payload.pageNumber,
+        chapter:
+          payload.chapter,
+        title:
+          payload.title,
+        content:
+          payload.content,
+      });
+    await get()
+      .loadBooks();
+    toast.success(
+      "Note added"
+    );
+    return String(
+      data.note?.id ?? ""
+    );
+  } catch (err) {
+    console.error(
+      "ADD NOTE ERROR",
+      err
+    );
+    return "";
+  }
+},
+// =========================
+// UPDATE BOOK NOTE
+// =========================
+// =========================
+// UPDATE BOOK NOTE
+// =========================
+updateBookNote: async (
+  id,
+  payload
+) => {
+  try {
+    await bookNoteApi.update(
+      id,
+      {
+        page_number:
+          payload.pageNumber,
+        chapter:
+          payload.chapter,
+        title:
+          payload.title,
+        content:
+          payload.content,
+      }
+    );
+    await get()
+      .loadBooks();
+    toast.success(
+      "Note updated"
+    );
+  } catch (err) {
+    console.error(
+      "UPDATE BOOK NOTE ERROR",
+      err
+    );
+  }
+},
+// =========================
+// REMOVE BOOK NOTE
+// =========================
+removeBookNote: async (
+  id
+) => {
+  try {
+await bookNoteApi.remove(
+  id
+    );
+    await get()
+      .loadBooks();
+    toast.success(
+      "Note deleted"
+    );
+  } catch (err) {
+    console.error(
+      "REMOVE BOOK NOTE ERROR",
+      err
+    );
+  }
+},
   // =========================
   // LOAD TASKS
   // =========================
-
   loadTasks: async () => {
     try {
       const data = await taskApi.getAll();
-
       set({
         tasks: data,
       });
@@ -360,39 +704,27 @@ xp: 0,
       console.error("LOAD TASKS ERROR", err);
     }
   },
-
   // =========================
 // NOTIFICATIONS
 // =========================
-
 markNotificationRead:
   (id) =>
-
     set((s) => ({
-
       notifications:
-
         s.notifications.map(
           (n) =>
-
             n.id === id
-
               ? {
                   ...n,
                   read: true,
                 }
-
               : n
         ),
     })),
-
 markAllNotificationsRead:
   () =>
-
     set((s) => ({
-
       notifications:
-
         s.notifications.map(
           (n) => ({
             ...n,
@@ -400,56 +732,40 @@ markAllNotificationsRead:
           })
         ),
     })),
-
 clearNotifications:
   () =>
-
     set({
-
       notifications: [],
     }),
-
   // =========================
 // LOAD JOURNALS
 // =========================
-
 loadJournals: async () => {
-
   try {
-
     const data =
       await journalApi.getAll();
     console.log(data);
     set({
-
   journals:
-
     (data ?? []).map(
           (j: any) => ({
-
             id:
               String(j.id),
-
             title:
               j.title,
-
             content:
               j.content,
-
             mood:
               j.mood,
-
             tags:
            (j.tags ?? []).map(
                 (t: any) =>
                   t.tag
               ),
-
             createdAt:
               new Date(
                 j.created_at
               ).getTime(),
-
             updatedAt:
               new Date(
                 j.updated_at
@@ -457,190 +773,134 @@ loadJournals: async () => {
           })
         ),
     });
-
   } catch (err) {
-
     console.error(
       "LOAD JOURNALS ERROR",
       err
     );
   }
 },
-
 // =========================
 // ADD JOURNAL
 // =========================
-
 addJournal:
   async (journal) => {
-
     try {
-
       const created =
         await journalApi.create({
-
                 title:
               journal.title ??
               "Untitled",
-
           content:
             journal.content,
-
           mood:
             journal.mood,
-
           tags:
             journal.tags,
         });
-
       await get()
         .loadJournals();
-
       return String(
         created.id
       );
-
     } catch (err) {
-
       console.error(
         "ADD JOURNAL ERROR",
         err
       );
-
       return "";
     }
   },
-
 // =========================
 // UPDATE JOURNAL
 // =========================
-
 updateJournal:
   async (
     id,
     patch
   ) => {
-
     try {
-
       // optimistic update
       set((s) => ({
-
         journals:
-
           s.journals.map(
             (j) =>
-
               j.id === id
-
                 ? {
-
                     ...j,
-
                     ...patch,
-
                     updatedAt:
                       Date.now(),
                   }
-
                 : j
           ),
       }));
-
       // backend save
       await journalApi.update(
-
         Number(id),
-
         {
-
           title:
             patch.title,
-
           content:
             patch.content,
-
           mood:
             patch.mood,
-
           tags:
             patch.tags,
         }
       );
 console.log(patch);
     } catch (err) {
-
       console.error(
         "UPDATE JOURNAL ERROR",
         err
       );
     }
   },
-
 // =========================
 // REMOVE JOURNAL
 // =========================
-
 removeJournal:
   async (id) => {
-
     try {
-
       await journalApi.remove(
         Number(id)
       );
-
       await get()
         .loadJournals();
-
     } catch (err) {
-
       console.error(
         "REMOVE JOURNAL ERROR",
         err
       );
     }
   },
-
   // =========================
 // LOAD HABITS
 // =========================
-
 loadHabits: async () => {
-
   try {
-
     const data =
       await habitApi.getAll();
-
     const habits =
       data.map(
         (h: any) => ({
-
           id:
             String(h.id),
-
           title:
             h.title,
-
           emoji:
             h.emoji,
-
           color:
             h.color,
-
           frequency:
             h.frequency,
-
           target:
             h.target,
-
           archived:
             !!h.archived,
-
           createdAt:
             Date.now(),
-
           logs:
             (
               h.logs ?? []
@@ -648,12 +908,10 @@ loadHabits: async () => {
               (
                 log: any
               ) => ({
-
                 id:
                   String(
                     log.id
                   ),
-
                 date:
                   String(
                     log.date
@@ -661,10 +919,8 @@ loadHabits: async () => {
                     0,
                     10
                   ),
-
                 completed:
                   !!log.completed,
-
                 completedAt:
                   log.completed_at
                     ? new Date(
@@ -675,21 +931,18 @@ loadHabits: async () => {
             ),
         })
       );
-
       const habitLogs = habits.flatMap((h: any) =>
       (h.logs ?? []).map((log: any) => ({
         ...log,
         habitId: h.id,
       }))
     );
-
     const xp =
       habits.reduce(
         (
           acc: number,
           h: any
         ) => {
-
           return (
             acc +
             (
@@ -700,89 +953,67 @@ loadHabits: async () => {
               (h.xp_per_completion ?? 25)
           );
         },
-
         0
       );
-
     set({
       habits,
       habitLogs,
       xp,
     });
-
   } catch (err) {
-
     console.error(
       "LOAD HABITS ERROR",
       err
     );
   }
 },
-
 // =========================
 // ADD HABIT
 // =========================
-
 addHabit: async (
   payload
 ) => {
-
   try {
-
     await habitApi.create(
       payload
     );
-
     await get()
       .loadHabits();
-
     toast.success(
       "Habit created"
     );
           new Audio(
         "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
       ).play();
-
   } catch (err) {
-
     console.error(
       "ADD HABIT ERROR",
       err
     );
   }
 },
-
 // =========================
 // TOGGLE HABIT
 // =========================
-
 toggleHabit: async (id) => {
   try {
-
     const today = todayKey();
-
     const state = get();
-
     const existing = state.habitLogs.find(
       (l) =>
         Number(l.habitId) === Number(id) &&
         l.date === today
     );
-
     // =========================
     // OPTIMISTIC UPDATE
     // =========================
-
     if (existing) {
-
       set({
         habitLogs: state.habitLogs.filter(
           (l) => l.id !== existing.id
         ),
       });
-
     } else {
-
       set({
         habitLogs: [
           ...state.habitLogs,
@@ -795,134 +1026,98 @@ toggleHabit: async (id) => {
           },
         ],
       });
-
     }
-
     // =========================
     // API
     // =========================
-
     await habitApi.toggle(Number(id));
-
     toast.success(
       "Keren, lanjutkan"
     );
-
     new Audio(
       "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
     ).play();
-
   } catch (err) {
-
     console.error(
       "TOGGLE HABIT ERROR",
       err
     );
-
     // kalau gagal sync ulang
     await get().loadHabits();
   }
 },
-
 // =========================
 // UPDATE HABIT
 // =========================
-
 updateHabit: async (
   id,
   payload
 ) => {
-
   try {
-
     await habitApi.update(
       Number(id),
       payload
     );
-
     await get()
       .loadHabits();
-
     toast.success(
       "Habit updated"
     );
-
   } catch (err) {
-
     console.error(
       "UPDATE HABIT ERROR",
       err
     );
   }
 },
-
 // =========================
 // REMOVE HABIT
 // =========================
-
 removeHabit: async (
   id
 ) => {
-
   try {
-
     await habitApi.archive(
       Number(id)
     );
-
     await get()
       .loadHabits();
-
     toast.success(
       "Habit removed"
     );
-
   } catch (err) {
-
     console.error(
       "REMOVE HABIT ERROR",
       err
     );
   }
 },
-
 archiveHabit: async (
   id
 ) => {
-
   try {
-
     await habitApi.archive(
       id
     );
-
     await get()
       .loadHabits();
-
   } catch (err) {
-
     console.error(
       err
     );
   }
 },
-
   // =========================
   // LOAD BOARDS
   // =========================
-
   loadBoards: async () => {
     try {
       const data = await boardApi.getAll();
-
       set({
         boards: data.map((b: any) => ({
           id: String(b.id),
-
           name: b.name,
-
           emoji: b.emoji ?? "🚀",
-
           createdAt: Date.now(),
         })),
       });
@@ -930,23 +1125,17 @@ archiveHabit: async (
       console.error("LOAD BOARDS ERROR", err);
     }
   },
-
   // =========================
   // ADD BOARD
   // =========================
-
   addBoard: async (name, emoji) => {
     try {
       await boardApi.create({
         project_id: 1,
-
         name,
-
         emoji,
-
         position: get().boards.length,
       });
-
       await get().loadBoards();
       // =========================
       // SOUND EFFECT
@@ -959,55 +1148,38 @@ archiveHabit: async (
       console.error("ADD BOARD ERROR", err);
     }
   },
-
   // =========================
   // SET TASKS
   // =========================
-
   setTasks: (tasks) =>
     set({
       tasks,
     }),
-
   // =========================
   // ACTIVE BOARD
   // =========================
-
   setActiveBoard: (id) =>
     set({
       activeBoardId: id,
     }),
-
   // =========================
   // ADD TASK
   // =========================
-
   addTask: async (t) => {
     try {
       const data = await taskApi.create({
         board_id: t.boardId,
-
         title: t.title,
-
         description: t.description,
-
         notes: t.notes,
-
         column_key: t.column,
-
         priority: t.priority ?? "med",
-
         tags: t.tags ?? [],
-
         due_at: t.dueAt ? new Date(t.dueAt).toISOString() : null,
-
         reminder: t.reminder ?? null,
-
         recurring: t.recurring ?? "none",
-
         position: 0,
       });
-
       await get().loadTasks();
       // =========================
       // SOUND EFFECT
@@ -1019,17 +1191,14 @@ archiveHabit: async (
       return data.task?.id ?? "";
     } catch (err) {
       console.error("ADD TASK ERROR", err);
-
       return "";
     }
   },
-
   // =========================
   // UPDATE TASK
   // =========================
 updateTask: async (id, patch) => {
   try {
-
     // UPDATE UI DULU
     set({
       tasks: get().tasks.map((task) =>
@@ -1041,7 +1210,6 @@ updateTask: async (id, patch) => {
           : task,
       ),
     });
-
     await taskApi.update(id, {
       title: patch.title,
       description: patch.description,
@@ -1059,144 +1227,102 @@ updateTask: async (id, patch) => {
         : null,
       position: patch.order,
     });
-
     toast.success("Task updated successfully");
-
     new Audio(
       "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
     ).play();
-
   } catch (err) {
-
     console.error("UPDATE TASK ERROR", err);
-
     await get().loadTasks();
   }
 },
-
   // =========================
   // DELETE TASK
   // =========================
 removeTask: async (id) => {
-
   const oldTasks = get().tasks;
-
   // HAPUS DARI UI DULU
   set({
     tasks: oldTasks.filter(
       (task) => task.id !== id
     ),
   });
-
   try {
-
     await taskApi.remove(id);
-
     toast.success(
       "Task deleted successfully"
     );
-
     new Audio(
       "https://public-assets.content-platform.envatousercontent.com/bb57cbaa-7c56-447b-a9ae-a6d964b90750/51a1b59a-e3e2-4e10-a68a-24ab89125826/preview.mp3",
     ).play();
-
   } catch (err) {
-
     console.error(
       "DELETE TASK ERROR",
       err,
     );
-
     // rollback kalau gagal
     set({
       tasks: oldTasks,
     });
   }
 },
-
   // =========================
   // MOVE TASK
   // =========================
-
   moveTask: async (id, column, order, completedAt) => {
     try {
       const task = get().tasks.find((t) => t.id === id);
-
       if (!task) return;
-
       await get().updateTask(id, {
         title: task.title,
-
         description: task.description,
-
         notes: task.notes,
-
         column,
-
         priority: task.priority,
-
         tags: task.tags,
-
         dueAt: task.dueAt,
-
         reminder: task.reminder,
-
         recurring: task.recurring,
-
         completedAt: completedAt,
-
         order,
       });
     } catch (err) {
       console.error("MOVE TASK ERROR", err);
     }
   },
-
   // =========================
   // REORDER
   // =========================
-
   reorderInColumn: (boardId, column, ids) => {
     const tasks = get().tasks.map((t) =>
       t.boardId === boardId && t.column === column
         ? {
             ...t,
-
             order: ids.indexOf(t.id),
           }
         : t,
     );
-
     set({
       tasks,
     });
   },
-
   // =========================
   // SUBTASK
   // =========================
-
   toggleSubtask: (taskId, subId) => {
     const task = get().tasks.find((t) => t.id === taskId);
-
     if (!task) return;
-
     const subtask = task.subtasks.find((s) => s.id === subId);
-
     if (!subtask) return;
-
     const nextDone = !subtask.done;
-
     subtaskApi.toggle(subId, nextDone).catch((err) => {
       console.error("TOGGLE SUBTASK ERROR", err);
     });
-
     set({
       tasks: get().tasks.map((t) =>
         t.id === taskId
           ? {
               ...t,
-
               subtasks: t.subtasks.map((s) =>
                 s.id === subId
                   ? {
@@ -1210,28 +1336,22 @@ removeTask: async (id) => {
       ),
     });
   },
-
   // =========================
   // THEME
   // =========================
-
   toggleTheme: () =>
     set((s) => {
       const next = s.theme === "dark" ? "light" : "dark";
-
       if (typeof document !== "undefined") {
         document.documentElement.classList.toggle("light", next === "light");
       }
-
       return {
         theme: next,
       };
     }),
-
   // =========================
   // TELEGRAM
   // =========================
-
   setTelegram: (patch) =>
     set((s) => ({
       telegram: {
@@ -1239,7 +1359,6 @@ removeTask: async (id) => {
         ...patch,
       },
     })),
-
   // =========================
   // STREAK
   // =========================
@@ -1248,56 +1367,42 @@ removeTask: async (id) => {
       const completedDays = Array.from(
         new Set(
           s.tasks
-
             .filter((t) => t.completedAt)
-
             .map((t) => {
               const d = new Date(t.completedAt!);
-
               d.setHours(0, 0, 0, 0);
-
               return d.getTime();
             }),
         ),
       )
-
         .sort((a, b) => b - a);
-
       if (completedDays.length === 0) {
         return {
           streak: {
             current: 0,
-
             lastDay: null,
           },
         };
       }
-
       let current = 1;
-
       for (let i = 0; i < completedDays.length - 1; i++) {
         const diff = completedDays[i] - completedDays[i + 1];
-
         if (diff === 86400000) {
           current++;
         } else {
           break;
         }
       }
-
       return {
         streak: {
           current,
-
           lastDay: new Date(completedDays[0]).toDateString(),
         },
       };
     }),
-
   // =========================
   // REMINDED
   // =========================
-
   markReminded: (id) =>
     set((s) => ({
       tasks: s.tasks.map((t) =>

@@ -480,3 +480,12 @@ src/component/Heatmap.tsx
 src/component/StatsWidgets.tsx
 src/component/XPBar.tsx
 src\routes\habits.tsx
+
+moveTask() done
+REORDER done
+updateTask() done
+removeTask() done
+addTask() aman
+archiveHabit() aman
+updateHabit() aman
+addHabit() oke 

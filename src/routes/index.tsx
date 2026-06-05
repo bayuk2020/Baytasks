@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useStore, todayKey, xpToLevel, rankFor } from "@/lib/store";
 import { motion } from "framer-motion";
 import {
+  // eslint-disable-next-line prettier/prettier
   CheckCircle2,
   Clock,
   Flame,
@@ -15,6 +16,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useMemo, useEffect } from "react";
+import { ContinueReading } from "@/components/library/ContinueReading";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -39,47 +41,30 @@ const QUOTES = [
 
 function Dashboard() {
   const {
-
-  tasks = [],
-
-  boards = [],
-
+  tasks,
+  boards,
   activeBoardId,
-
   streak,
-
-  habits = [],
-
-  habitLogs = [],
-
-  xp = 0,
-
-  journals = [],
-
-  loadTasks,
-
-  loadBoards,
-
-  loadHabits,
-
-  loadJournals,
-
+  habits,
+  habitLogs,
+  xp,
+  journals,
+  books,
+  bookNotes,
+  readingSessions,
 } = useStore();
-useEffect(() => {
-
-  loadTasks();
-
-  loadBoards();
-
-  loadHabits();
-
-  loadJournals();
-
-}, []);
   const today = todayKey();
   const board = boards.find((b) => b.id === activeBoardId);
   const myTasks = tasks.filter((t) => t.boardId === activeBoardId);
+const loadBooks = useStore(
+  (s) => s.loadBooks
+);
 
+useEffect(() => {
+
+  loadBooks();
+
+}, []);
   const stats = useMemo(() => {
     const done = myTasks.filter((t) => t.column === "done").length;
     const inProg = myTasks.filter((t) => t.column === "in_progress").length;
@@ -367,43 +352,47 @@ useEffect(() => {
         </motion.section>
       </div>
 
-      <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass rounded-2xl p-5"
-      >
-        <h2 className="font-medium mb-4">Boards</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {boards.map((b) => {
-            const count = tasks.filter((t) => t.boardId === b.id && t.column !== "done").length;
-            const done = tasks.filter((t) => t.boardId === b.id && t.column === "done").length;
-            const total = count + done;
-            const pct = total ? Math.round((done / total) * 100) : 0;
-            return (
-              <Link
-                key={b.id}
-                to="/board"
-                onClick={() => useStore.getState().setActiveBoard(b.id)}
-                className="rounded-xl border border-border bg-secondary/40 p-4 hover:border-primary/40 transition group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl">{b.emoji}</span>
-                  <span className="text-xs text-muted-foreground">{count} open</span>
-                </div>
-                <div className="mt-2 font-medium truncate">{b.name}</div>
-                <div className="mt-3 h-1.5 rounded-full bg-secondary overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${pct}%` }}
-                    className="h-full bg-gradient-to-r from-primary to-violet-400"
-                  />
-                </div>
-                <div className="mt-1.5 text-[11px] text-muted-foreground">{pct}% complete</div>
-              </Link>
-            );
-          })}
-        </div>
-      </motion.section>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 relative">
+        <ContinueReading />
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-2xl p-5"
+        >
+          <h2 className="font-medium mb-4">Boards</h2>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {boards.map((b) => {
+              const count = tasks.filter((t) => t.boardId === b.id && t.column !== "done").length;
+              const done = tasks.filter((t) => t.boardId === b.id && t.column === "done").length;
+              const total = count + done;
+              const pct = total ? Math.round((done / total) * 100) : 0;
+              return (
+                <Link
+                  key={b.id}
+                  to="/board"
+                  onClick={() => useStore.getState().setActiveBoard(b.id)}
+                  className="rounded-xl border border-border bg-secondary/40 p-4 hover:border-primary/40 transition group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl">{b.emoji}</span>
+                    <span className="text-xs text-muted-foreground">{count} open</span>
+                  </div>
+                  <div className="mt-2 font-medium truncate">{b.name}</div>
+                  <div className="mt-3 h-1.5 rounded-full bg-secondary overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      className="h-full bg-gradient-to-r from-primary to-violet-400"
+                    />
+                  </div>
+                  <div className="mt-1.5 text-[11px] text-muted-foreground">{pct}% complete</div>
+                </Link>
+              );
+            })}
+          </div>
+        </motion.section>
+      </div>
     </div>
   );
 }

@@ -373,3 +373,150 @@ export const journalApi = {
       }
     ),
 };
+// =========================
+// READING VAULT
+// =========================
+
+export const bookApi = {
+
+  getAll: () =>
+    request("/books"),
+
+  create: (
+    payload: any
+  ) =>
+    request("/books", {
+      method: "POST",
+      body: JSON.stringify(
+        payload
+      ),
+    }),
+
+  update: (
+    id: string,
+    payload: any
+  ) =>
+    request(
+      `/books/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(
+          payload
+        ),
+      }
+    ),
+
+  remove: (
+    id: string
+  ) =>
+    request(
+      `/books/${id}`,
+      {
+        method: "DELETE",
+      }
+    ),
+
+  updateProgress: (
+    id: string,
+    currentPage: number
+  ) =>
+    request(
+      `/books/${id}/progress`,
+      {
+        method: "POST",
+
+        body: JSON.stringify({
+          current_page:
+            currentPage,
+        }),
+      }
+    ),
+
+  // =========================
+  // UPLOAD COVER
+  // =========================
+
+  uploadCover: async (
+    file: File
+  ) => {
+
+    const formData =
+      new FormData();
+
+    formData.append(
+      "file",
+      file
+    );
+
+    const res =
+      await fetch(
+        `${API}/books/upload-cover`,
+        {
+
+          method: "POST",
+
+          body:
+            formData,
+        }
+      );
+
+    return res.json();
+  },
+
+  // =========================
+  // UPLOAD PDF
+  // =========================
+
+  uploadPdf: async (
+    file: File
+  ) => {
+
+    const formData =
+      new FormData();
+
+    formData.append(
+      "file",
+      file
+    );
+
+    const res =
+      await fetch(
+        `${API}/books/upload-pdf`,
+        {
+
+          method: "POST",
+
+          body:
+            formData,
+        }
+      );
+
+    return res.json();
+  },
+};
+
+// =========================
+// Book Note API
+// =========================
+
+export const bookNoteApi = {
+  create: (payload: any) =>
+    request("/book-notes", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  update: (
+    id: string,
+    payload: any
+  ) =>
+    request(`/book-notes/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+
+  remove: (id: string) =>
+    request(`/book-notes/${id}`, {
+      method: "DELETE",
+    }),
+};

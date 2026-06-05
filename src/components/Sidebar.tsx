@@ -11,7 +11,8 @@ import {
   Plus,
   Sparkles,
   Timer,
-  NotebookPen
+  NotebookPen,
+  Library
 } from "lucide-react";
 
 import {
@@ -48,7 +49,7 @@ const navItems = [
   label: "Journal",
   icon: NotebookPen,
 },
-
+  { to: "/library", label: "Reading Vault", icon: Library },
   {
     to: "/calendar",
     label: "Calendar",

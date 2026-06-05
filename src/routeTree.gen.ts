@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PomodoroRouteImport } from './routes/pomodoro'
+import { Route as LibraryRouteImport } from './routes/library'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as IndexoldRouteImport } from './routes/indexold'
 import { Route as HabitsRouteImport } from './routes/habits'
@@ -19,6 +20,7 @@ import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BoardRouteImport } from './routes/board'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BookBookIdRouteImport } from './routes/book.$bookId'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -28,6 +30,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const PomodoroRoute = PomodoroRouteImport.update({
   id: '/pomodoro',
   path: '/pomodoro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JournalRoute = JournalRouteImport.update({
@@ -70,6 +77,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BookBookIdRoute = BookBookIdRouteImport.update({
+  id: '/book/$bookId',
+  path: '/book/$bookId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,8 +92,10 @@ export interface FileRoutesByFullPath {
   '/habits': typeof HabitsRoute
   '/indexold': typeof IndexoldRoute
   '/journal': typeof JournalRoute
+  '/library': typeof LibraryRoute
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
+  '/book/$bookId': typeof BookBookIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -92,8 +106,10 @@ export interface FileRoutesByTo {
   '/habits': typeof HabitsRoute
   '/indexold': typeof IndexoldRoute
   '/journal': typeof JournalRoute
+  '/library': typeof LibraryRoute
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
+  '/book/$bookId': typeof BookBookIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -105,8 +121,10 @@ export interface FileRoutesById {
   '/habits': typeof HabitsRoute
   '/indexold': typeof IndexoldRoute
   '/journal': typeof JournalRoute
+  '/library': typeof LibraryRoute
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
+  '/book/$bookId': typeof BookBookIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,8 +137,10 @@ export interface FileRouteTypes {
     | '/habits'
     | '/indexold'
     | '/journal'
+    | '/library'
     | '/pomodoro'
     | '/settings'
+    | '/book/$bookId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -131,8 +151,10 @@ export interface FileRouteTypes {
     | '/habits'
     | '/indexold'
     | '/journal'
+    | '/library'
     | '/pomodoro'
     | '/settings'
+    | '/book/$bookId'
   id:
     | '__root__'
     | '/'
@@ -143,8 +165,10 @@ export interface FileRouteTypes {
     | '/habits'
     | '/indexold'
     | '/journal'
+    | '/library'
     | '/pomodoro'
     | '/settings'
+    | '/book/$bookId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -156,8 +180,10 @@ export interface RootRouteChildren {
   HabitsRoute: typeof HabitsRoute
   IndexoldRoute: typeof IndexoldRoute
   JournalRoute: typeof JournalRoute
+  LibraryRoute: typeof LibraryRoute
   PomodoroRoute: typeof PomodoroRoute
   SettingsRoute: typeof SettingsRoute
+  BookBookIdRoute: typeof BookBookIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -174,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/pomodoro'
       fullPath: '/pomodoro'
       preLoaderRoute: typeof PomodoroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/journal': {
@@ -232,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/book/$bookId': {
+      id: '/book/$bookId'
+      path: '/book/$bookId'
+      fullPath: '/book/$bookId'
+      preLoaderRoute: typeof BookBookIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -244,8 +284,10 @@ const rootRouteChildren: RootRouteChildren = {
   HabitsRoute: HabitsRoute,
   IndexoldRoute: IndexoldRoute,
   JournalRoute: JournalRoute,
+  LibraryRoute: LibraryRoute,
   PomodoroRoute: PomodoroRoute,
   SettingsRoute: SettingsRoute,
+  BookBookIdRoute: BookBookIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
