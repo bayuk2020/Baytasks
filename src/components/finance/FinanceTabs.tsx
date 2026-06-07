@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -8,17 +7,19 @@ import {
   Receipt,
   LineChart,
   BarChart3,
+  ContactRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS: { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }[] = [
-  { to: "/finance",              label: "Overview",     icon: LayoutDashboard, exact: true },
-  { to: "/finance/accounts",     label: "Accounts",     icon: Wallet },
+  { to: "/finance", label: "Overview", icon: LayoutDashboard, exact: true },
+  { to: "/finance/accounts", label: "Accounts", icon: Wallet },
   { to: "/finance/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { to: "/finance/budgets",      label: "Budgets",      icon: PiggyBank },
-  { to: "/finance/debt",         label: "Debt",         icon: Receipt },
-  { to: "/finance/trading",      label: "Trading",      icon: LineChart },
-  { to: "/finance/analytics",    label: "Analytics",    icon: BarChart3 },
+  { to: "/finance/contacts", label: "Contacts", icon: ContactRound },
+  { to: "/finance/budgets", label: "Budgets", icon: PiggyBank },
+  { to: "/finance/debt", label: "Debt", icon: Receipt },
+  { to: "/finance/trading", label: "Trading", icon: LineChart },
+  { to: "/finance/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 export function FinanceTabs() {
@@ -36,7 +37,7 @@ export function FinanceTabs() {
               "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
               active
                 ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
           >
             <Icon className="h-4 w-4" />

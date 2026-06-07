@@ -489,3 +489,27 @@ addTask() aman
 archiveHabit() aman
 updateHabit() aman
 addHabit() oke 
+
+
+routeTree.gen.ts
+src/components/library/BookCard.tsx 
+src/components/library/BookCover.tsx
+src/components/library/BookFormModal.tsx
+src/components/library/ContinueReading.tsx
+src/components/library/NoteFormModal.tsx
+src/components/Sidebar.tsx
+src/lib/api.ts
+src/lib/store.ts
+src/routes/book.$bookId.tsx
+src/routes/index.tsx
+src/routes/library.tsx
+
+
+src/lib/store.ts
+src/lib/api.ts
+src/styles.css
+src/components/AppShell.tsx
+src/routes/library.tsx
+src/routes/book.$bookId.tsx
+
+^\s*$\n

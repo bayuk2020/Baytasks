@@ -1,57 +1,79 @@
 /* eslint-disable prettier/prettier */
-/**
- * Finance Hub — self-contained Zustand store.
- *
- * Designed as a drop-in addition to BayTasks. It does NOT extend the main
- * `useStore` so it can be copy-pasted without touching existing modules.
- * Persists to localStorage; swap calls for `financeApi` (see ./api.ts) when
- * you wire the Laravel backend.
- */
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-
+import {
+  accountApi,
+  transactionApi,
+  incomeSourceApi,
+  contactApi,
+  budgetApi,
+  debtApi,
+  tradeApi,
+} from "@/lib/finance/api";
 /* ---------------- Types ---------------- */
-
 export type AccountType = "bank" | "ewallet" | "cash" | "trading";
 export type TransactionType = "income" | "expense" | "transfer";
 export type DebtStatus = "active" | "paid" | "overdue";
 export type TradeSide = "buy" | "sell";
 export type TradeStatus = "open" | "closed";
-
+export type ContactType = "person" | "family" | "employee" | "vendor" | "customer" | "other";
 export interface Account {
   id: string;
   name: string;
   type: AccountType;
   balance: number;
-  icon: string;        // lucide icon name
-  color: string;       // hsl/oklch/hex
+  icon: string; // lucide icon name
+  color: string; // hsl/oklch/hex
   notes?: string;
   createdAt: number;
   updatedAt: number;
 }
-
 export interface IncomeSource {
   id: string;
   name: string;
   color: string;
   createdAt: number;
 }
-
+export interface Contact {
+  id: string;
+  name: string;
+  type: ContactType;
+  phone?: string;
+  notes?: string;
+  transactionCount?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+export interface ContactAnalyticsItem {
+  contactId: string;
+  name: string;
+  type: ContactType;
+  totalExpense: number;
+  totalIncome: number;
+  totalTransfer: number;
+  transactionVolume: number;
+  transactionCount: number;
+}
+export interface ContactAnalytics {
+  contacts: ContactAnalyticsItem[];
+  topContacts: ContactAnalyticsItem[];
+  totalFamilyTransfers: number;
+  totalEmployeeSalaries: number;
+}
 export interface Transaction {
   id: string;
   accountId: string;
   type: TransactionType;
   category: string;
-  amount: number;            // always positive
+  amount: number; // always positive
   description?: string;
-  transactionDate: number;   // epoch ms
-  incomeSourceId?: string;   // for income
-  transferGroupId?: string;  // links paired transfer rows
-  toAccountId?: string;      // convenience on the "out" leg
+  transactionDate: number; // epoch ms
+  incomeSourceId?: string; // for income
+  contactId?: string;
+  transferGroupId?: string; // links paired transfer rows
+  toAccountId?: string; // convenience on the "out" leg
   createdAt: number;
   updatedAt: number;
 }
-
 export interface Budget {
   id: string;
   category: string;
@@ -60,7 +82,6 @@ export interface Budget {
   createdAt: number;
   updatedAt: number;
 }
-
 export interface Debt {
   id: string;
   creditor: string;
@@ -73,7 +94,6 @@ export interface Debt {
   createdAt: number;
   updatedAt: number;
 }
-
 export interface DebtPayment {
   id: string;
   debtId: string;
@@ -82,10 +102,9 @@ export interface DebtPayment {
   accountId?: string; // optional: also create an expense from this account
   notes?: string;
 }
-
 export interface Trade {
   id: string;
-  accountId: string;     // a trading-type account
+  accountId: string; // a trading-type account
   symbol: string;
   side: TradeSide;
   quantity: number;
@@ -97,75 +116,131 @@ export interface Trade {
   closedAt?: number;
   notes?: string;
 }
-
 export const ACCOUNT_TYPE_META: Record<AccountType, { label: string; color: string }> = {
-  bank:     { label: "Bank",      color: "oklch(0.72 0.16 230)" },
-  ewallet:  { label: "E-Wallet",  color: "oklch(0.75 0.18 160)" },
-  cash:     { label: "Cash",      color: "oklch(0.80 0.14 80)"  },
-  trading:  { label: "Trading",   color: "oklch(0.72 0.22 300)" },
+  bank: { label: "Bank", color: "oklch(0.72 0.16 230)" },
+  ewallet: { label: "E-Wallet", color: "oklch(0.75 0.18 160)" },
+  cash: { label: "Cash", color: "oklch(0.80 0.14 80)" },
+  trading: { label: "Trading", color: "oklch(0.72 0.22 300)" },
 };
-
 export const DEFAULT_EXPENSE_CATEGORIES = [
-  "Food", "Transport", "Bills", "Shopping", "Health",
-  "Entertainment", "Education", "Subscriptions", "Other",
+  "Food",
+  "Transport",
+  "Bills",
+  "Shopping",
+  "Health",
+  "Entertainment",
+  "Education",
+  "Subscriptions",
+  "Other",
 ];
 export const DEFAULT_INCOME_CATEGORIES = [
-  "Salary", "Bonus", "Freelance", "Investment", "Refund", "Other",
+  "Salary",
+  "Bonus",
+  "Freelance",
+  "Investment",
+  "Refund",
+  "Other",
 ];
-
-/* ---------------- State / actions ---------------- */
-
 interface FinanceState {
+  loadAccounts: () => Promise<void>;
+  loadTransactions: (page?: number) => Promise<void>;
+  loadIncomeSources: () => Promise<void>;
+  loadContacts: () => Promise<void>;
+  loadContactAnalytics: () => Promise<void>;
+  loadBudgets: () => Promise<void>;
+  loadDebts: () => Promise<void>;
+  loadTrades: () => Promise<void>;
+  loadAll: () => Promise<void>;
+
   accounts: Account[];
+  accountMap: Record<string, Account>;
   transactions: Transaction[];
   incomeSources: IncomeSource[];
+  contacts: Contact[];
+  contactMap: Record<string, Contact>;
+  contactAnalytics: ContactAnalytics | null;
   budgets: Budget[];
   debts: Debt[];
   debtPayments: DebtPayment[];
   trades: Trade[];
-  categories: { income: string[]; expense: string[] };
+  transactionMeta: { current_page: number; last_page: number } | undefined;
+
+  categories: {
+    income: string[];
+    expense: string[];
+  };
 
   // accounts
-  addAccount: (p: Omit<Account, "id" | "balance" | "createdAt" | "updatedAt"> & { balance?: number }) => Account;
-  updateAccount: (id: string, p: Partial<Account>) => void;
-  removeAccount: (id: string) => void;
+  addAccount: (
+    p: Omit<Account, "id" | "balance" | "createdAt" | "updatedAt"> & {
+      balance?: number;
+    },
+  ) => Promise<Account>;
+
+  updateAccount: (id: string, p: Partial<Account>) => Promise<void>;
+
+  removeAccount: (id: string) => Promise<void>;
 
   // transactions
   addTransaction: (
-    p: Omit<Transaction, "id" | "createdAt" | "updatedAt" | "transferGroupId"> & { toAccountId?: string }
-  ) => void;
-  updateTransaction: (id: string, p: Partial<Transaction>) => void;
-  removeTransaction: (id: string) => void;
+    p: Omit<Transaction, "id" | "createdAt" | "updatedAt" | "transferGroupId"> & {
+      toAccountId?: string;
+    },
+  ) => Promise<void>;
+
+  updateTransaction: (id: string, p: Partial<Transaction>) => Promise<void>;
+
+  removeTransaction: (id: string) => Promise<void>;
 
   // income sources
-  addIncomeSource: (name: string, color?: string) => IncomeSource;
-  removeIncomeSource: (id: string) => void;
+  addIncomeSource: (name: string, color?: string) => Promise<IncomeSource>;
+  updateIncomeSource: (id: string, payload: Pick<IncomeSource, "name" | "color">) => Promise<void>;
+
+  removeIncomeSource: (id: string) => Promise<void>;
+
+  addContact: (
+    payload: Omit<Contact, "id" | "createdAt" | "updatedAt" | "transactionCount">,
+  ) => Promise<Contact>;
+  updateContact: (
+    id: string,
+    payload: Partial<Pick<Contact, "name" | "type" | "phone" | "notes">>,
+  ) => Promise<void>;
+  removeContact: (id: string) => Promise<void>;
 
   // budgets
-  addBudget: (p: Omit<Budget, "id" | "createdAt" | "updatedAt">) => void;
-  updateBudget: (id: string, p: Partial<Budget>) => void;
-  removeBudget: (id: string) => void;
+  addBudget: (p: Omit<Budget, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+
+  updateBudget: (id: string, p: Partial<Budget>) => Promise<void>;
+
+  removeBudget: (id: string) => Promise<void>;
 
   // debts
-  addDebt: (p: Omit<Debt, "id" | "createdAt" | "updatedAt" | "status" | "remainingDebt"> & { remainingDebt?: number }) => void;
-  updateDebt: (id: string, p: Partial<Debt>) => void;
-  removeDebt: (id: string) => void;
-  addDebtPayment: (p: Omit<DebtPayment, "id">) => void;
-  removeDebtPayment: (id: string) => void;
+  addDebt: (
+    p: Omit<Debt, "id" | "createdAt" | "updatedAt" | "status" | "remainingDebt"> & {
+      remainingDebt?: number;
+    },
+  ) => Promise<void>;
+
+  updateDebt: (id: string, p: Partial<Debt>) => Promise<void>;
+
+  removeDebt: (id: string) => Promise<void>;
+
+  addDebtPayment: (p: Omit<DebtPayment, "id">) => Promise<void>;
+
+  removeDebtPayment: (id: string) => Promise<void>;
 
   // trades
-  addTrade: (p: Omit<Trade, "id">) => void;
-  updateTrade: (id: string, p: Partial<Trade>) => void;
-  removeTrade: (id: string) => void;
-}
+  addTrade: (p: Omit<Trade, "id">) => Promise<void>;
 
+  updateTrade: (id: string, p: Partial<Trade>) => Promise<void>;
+
+  removeTrade: (id: string) => Promise<void>;
+}
 const uid = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-
 const now = () => Date.now();
-
 /** Recompute a single account balance from the transaction ledger. */
 function recomputeBalance(accountId: string, txs: Transaction[], opening: number) {
   let bal = opening;
@@ -177,350 +252,355 @@ function recomputeBalance(accountId: string, txs: Transaction[], opening: number
   }
   return bal;
 }
-
 /** Recompute every account's balance from openingBalance + ledger. */
-function rebuildBalances(accounts: Account[], transactions: Transaction[], openings: Record<string, number>) {
+function rebuildBalances(
+  accounts: Account[],
+  transactions: Transaction[],
+  openings: Record<string, number>,
+) {
   return accounts.map((a) => ({
     ...a,
     balance: recomputeBalance(a.id, transactions, openings[a.id] ?? 0),
     updatedAt: now(),
   }));
 }
+export const useFinanceStore = create<FinanceState>((set, get) => ({
+  accounts: [],
+  accountMap: {},
+  transactions: [],
 
-export const useFinanceStore = create<FinanceState>()(
-  persist(
-    (set, get) => ({
-      accounts: [],
-      transactions: [],
-      incomeSources: [
-        { id: uid(), name: "Salary",        color: "oklch(0.72 0.16 230)", createdAt: now() },
-        { id: uid(), name: "Freelance",     color: "oklch(0.75 0.18 160)", createdAt: now() },
-        { id: uid(), name: "Trading",       color: "oklch(0.72 0.22 300)", createdAt: now() },
-        { id: uid(), name: "Family Business", color: "oklch(0.80 0.14 80)", createdAt: now() },
-        { id: uid(), name: "Affiliate",     color: "oklch(0.70 0.17 20)",  createdAt: now() },
-      ],
-      budgets: [],
-      debts: [],
-      debtPayments: [],
-      trades: [],
-      categories: {
-        income: [...DEFAULT_INCOME_CATEGORIES],
-        expense: [...DEFAULT_EXPENSE_CATEGORIES],
-      },
+  incomeSources: [],
+  contacts: [],
+  contactMap: {},
+  contactAnalytics: null,
 
-      /* ---- accounts ---- */
-      addAccount: (p) => {
-        const acc: Account = {
+  budgets: [],
+  debts: [],
+  debtPayments: [],
+  trades: [],
+
+  transactionMeta: undefined,
+
+  categories: {
+    income: [...DEFAULT_INCOME_CATEGORIES],
+    expense: [...DEFAULT_EXPENSE_CATEGORIES],
+  },
+
+  loadAccounts: async () => {
+    const data = await accountApi.getAll();
+    set({ accounts: data, accountMap: Object.fromEntries(data.map((a: Account) => [a.id, a])) });
+  },
+
+  loadTransactions: async (page: number = 1) => {
+    const data = await transactionApi.getAll(page);
+    // Jika backend menggunakan paginate(), data berbentuk { data: [...], meta: {...} }
+    const items = Array.isArray(data) ? data : (data.data || []);
+    const meta = Array.isArray(data) ? undefined : { current_page: data.meta?.current_page, last_page: data.meta?.last_page };
+    set({ transactions: items, transactionMeta: meta });
+  },
+
+  loadIncomeSources: async () => {
+    const data = await incomeSourceApi.getAll();
+    set({ incomeSources: data });
+  },
+
+  loadContacts: async () => {
+    const res = await contactApi.getAll();
+    const data = Array.isArray(res) ? res : res.data;
+    set({
+      contacts: data,
+      contactMap: Object.fromEntries(data.map((c: Contact) => [c.id, c])),
+    });
+  },
+
+  loadContactAnalytics: async () => {
+    const data = await contactApi.analytics();
+    set({ contactAnalytics: data });
+  },
+
+  loadBudgets: async () => {
+    const data = await budgetApi.getAll();
+    set({ budgets: data });
+  },
+
+  loadDebts: async () => {
+    const data = await debtApi.getAll();
+    set({ debts: data });
+  },
+
+  loadTrades: async () => {
+    const data = await tradeApi.getAll();
+    set({ trades: data });
+  },
+
+  loadAll: async () => {
+    const [accounts, transactions, incomeSources, contacts, budgets, debts, trades] = await Promise.all([
+      accountApi.getAll(),
+      transactionApi.getAll(),
+      incomeSourceApi.getAll(),
+      contactApi.getAll(),
+      budgetApi.getAll(),
+      debtApi.getAll(),
+      tradeApi.getAll(),
+    ]);
+
+    set({
+      accounts,
+      transactions,
+      incomeSources,
+      contacts,
+      budgets,
+      debts,
+      trades,
+    });
+  },
+
+  /* ---- accounts ---- */
+
+  addAccount: async (p) => {
+    const account = await accountApi.create({
+      name: p.name,
+      type: p.type,
+      balance: p.balance ?? 0,
+      icon: p.icon,
+      color: p.color,
+      notes: p.notes,
+    });
+
+    set((s) => ({
+      accounts: [...s.accounts, account],
+    }));
+
+    return account;
+  },
+
+  updateAccount: async (id, p) => {
+    const account = await accountApi.update(id, p);
+
+    set((s) => ({
+      accounts: s.accounts.map((a) => (a.id === id ? account : a)),
+    }));
+  },
+
+  removeAccount: async (id) => {
+    await accountApi.remove(id);
+
+    set((s) => ({
+      accounts: s.accounts.filter((a) => a.id !== id),
+    }));
+  },
+
+  /* ---- transactions ---- */
+
+  addTransaction: async (p) => {
+    await transactionApi.create(p);
+    const [transactions, accounts] = await Promise.all([
+      transactionApi.getAll(),
+      accountApi.getAll(),
+    ]);
+    set({ transactions, accounts });
+  },
+
+  updateTransaction: async (id, p) => {
+    await transactionApi.update(id, p);
+    const [transactions, accounts] = await Promise.all([
+      transactionApi.getAll(),
+      accountApi.getAll(),
+    ]);
+    set({ transactions, accounts });
+  },
+
+  removeTransaction: async (id) => {
+    await transactionApi.remove(id);
+    const [transactions, accounts] = await Promise.all([
+      transactionApi.getAll(),
+      accountApi.getAll(),
+    ]);
+    set({ transactions, accounts });
+  },
+  /* ---- income sources ---- */
+
+  addIncomeSource: async (name, color = "oklch(0.72 0.16 230)") => {
+    const source = await incomeSourceApi.create({
+      name,
+      color,
+    });
+
+    set((s) => ({
+      incomeSources: [...s.incomeSources, source],
+    }));
+
+    return source;
+  },
+
+  updateIncomeSource: async (id, payload) => {
+    const source = await incomeSourceApi.update(id, payload);
+
+    set((s) => ({
+      incomeSources: s.incomeSources.map((x) => (x.id === id ? source : x)),
+    }));
+  },
+
+  removeIncomeSource: async (id) => {
+    await incomeSourceApi.remove(id);
+
+    set((s) => ({
+      incomeSources: s.incomeSources.filter((x) => x.id !== id),
+    }));
+  },
+
+  /* ---- contacts ---- */
+
+  addContact: async (payload) => {
+    const contact = await contactApi.create(payload);
+    set((state) => ({
+      contacts: [...state.contacts, contact].sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+    return contact;
+  },
+
+  updateContact: async (id, payload) => {
+    const contact = await contactApi.update(id, payload);
+    set((state) => ({
+      contacts: state.contacts
+        .map((item) => (item.id === id ? contact : item))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+  },
+
+  removeContact: async (id) => {
+    await contactApi.remove(id);
+    set((state) => ({
+      contacts: state.contacts.filter((contact) => contact.id !== id),
+      transactions: state.transactions.map((transaction) =>
+        transaction.contactId === id ? { ...transaction, contactId: undefined } : transaction,
+      ),
+    }));
+  },
+
+  /* ---- budgets ---- */
+
+  addBudget: async (p) => {
+    const budget = await budgetApi.create(p);
+
+    set((s) => ({
+      budgets: [...s.budgets, budget],
+    }));
+  },
+
+  updateBudget: async (id, p) => {
+    const budget = await budgetApi.update(id, p);
+
+    set((s) => ({
+      budgets: s.budgets.map((b) => (b.id === id ? budget : b)),
+    }));
+  },
+
+  removeBudget: async (id) => {
+    await budgetApi.remove(id);
+
+    set((s) => ({
+      budgets: s.budgets.filter((b) => b.id !== id),
+    }));
+  },
+
+  /* ---- debts ---- */
+  /* BIARKAN PUNYA MU SEKARANG */
+
+  /* ---- trades ---- */
+  /* BIARKAN PUNYA MU SEKARANG */
+  /* ---- debts ---- */
+  addDebt: async (p) =>
+    set((s) => ({
+      debts: [
+        ...s.debts,
+        {
+          ...p,
           id: uid(),
-          name: p.name,
-          type: p.type,
-          icon: p.icon,
-          color: p.color,
-          notes: p.notes,
-          balance: p.balance ?? 0,
+          remainingDebt: p.remainingDebt ?? p.totalDebt,
+          status: "active",
+          createdAt: now(),
+          updatedAt: now(),
+        },
+      ],
+    })),
+  updateDebt: async (id, p) =>
+    set((s) => ({
+      debts: s.debts.map((d) => (d.id === id ? { ...d, ...p, updatedAt: now() } : d)),
+    })),
+  removeDebt: async (id) =>
+    set((s) => ({
+      debts: s.debts.filter((d) => d.id !== id),
+      debtPayments: s.debtPayments.filter((p) => p.debtId !== id),
+    })),
+  addDebtPayment: async (p) => {
+    const payment: DebtPayment = { ...p, id: uid() };
+    set((s) => {
+      const debts = s.debts.map((d) => {
+        if (d.id !== p.debtId) return d;
+        const remaining = Math.max(0, d.remainingDebt - p.amount);
+        return {
+          ...d,
+          remainingDebt: remaining,
+          status: remaining === 0 ? ("paid" as DebtStatus) : d.status,
+          updatedAt: now(),
+        };
+      });
+      let accounts = s.accounts;
+      let transactions = s.transactions;
+      if (p.accountId) {
+        const tx: Transaction = {
+          id: uid(),
+          accountId: p.accountId,
+          type: "expense",
+          category: "Debt Payment",
+          amount: p.amount,
+          description: p.notes ?? `Debt payment`,
+          transactionDate: p.paidAt,
           createdAt: now(),
           updatedAt: now(),
         };
-        set((s) => ({ accounts: [...s.accounts, acc] }));
-        return acc;
-      },
-      updateAccount: (id, p) =>
-        set((s) => ({
-          accounts: s.accounts.map((a) =>
-            a.id === id ? { ...a, ...p, updatedAt: now() } : a
-          ),
-        })),
-      removeAccount: (id) =>
-        set((s) => ({
-          accounts: s.accounts.filter((a) => a.id !== id),
-          transactions: s.transactions.filter(
-            (t) => t.accountId !== id && t.toAccountId !== id
-          ),
-          trades: s.trades.filter((t) => t.accountId !== id),
-        })),
-
-      /* ---- transactions ---- */
-      addTransaction: (p) => {
-        const ts = now();
-        const baseId = uid();
-        const acc = get().accounts.find((a) => a.id === p.accountId);
-        if (!acc) return;
-
-        if (p.type === "transfer") {
-          if (!p.toAccountId || p.toAccountId === p.accountId) return;
-          const groupId = uid();
-          const outLeg: Transaction = {
-            id: baseId,
-            accountId: p.accountId,
-            toAccountId: p.toAccountId,
-            type: "transfer",
-            category: "Transfer Out",
-            amount: p.amount,
-            description: p.description,
-            transactionDate: p.transactionDate,
-            transferGroupId: groupId,
-            createdAt: ts,
-            updatedAt: ts,
-          };
-          const inLeg: Transaction = {
-            ...outLeg,
-            id: uid(),
-            accountId: p.toAccountId,
-            toAccountId: p.accountId,
-            category: "Transfer In",
-            // store as a positive income-style row on the receiving account
-            type: "income",
-            transferGroupId: groupId,
-          };
-          set((s) => {
-            const transactions = [...s.transactions, outLeg, inLeg];
-            return {
-              transactions,
-              accounts: s.accounts.map((a) => {
-                if (a.id === outLeg.accountId)
-                  return { ...a, balance: a.balance - p.amount, updatedAt: ts };
-                if (a.id === inLeg.accountId)
-                  return { ...a, balance: a.balance + p.amount, updatedAt: ts };
-                return a;
-              }),
-            };
-          });
-          return;
-        }
-
-        const tx: Transaction = {
-          id: baseId,
-          accountId: p.accountId,
-          type: p.type,
-          category: p.category,
-          amount: p.amount,
-          description: p.description,
-          transactionDate: p.transactionDate,
-          incomeSourceId: p.incomeSourceId,
-          createdAt: ts,
-          updatedAt: ts,
-        };
-        set((s) => ({
-          transactions: [...s.transactions, tx],
-          accounts: s.accounts.map((a) =>
-            a.id === tx.accountId
-              ? {
-                  ...a,
-                  balance:
-                    a.balance + (tx.type === "income" ? tx.amount : -tx.amount),
-                  updatedAt: ts,
-                }
-              : a
-          ),
-        }));
-      },
-      updateTransaction: (id, p) => {
-        set((s) => {
-          const next = s.transactions.map((t) =>
-            t.id === id ? { ...t, ...p, updatedAt: now() } : t
-          );
-          // recompute balances from scratch using current balances as openings
-          // (simpler: derive openings as current - applied effect).
-          const openings: Record<string, number> = {};
-          for (const a of s.accounts) openings[a.id] = 0;
-          // walk both old & new ledger using openings=0 then offset:
-          const recompute = (ledger: Transaction[]) => {
-            const map: Record<string, number> = { ...openings };
-            for (const t of ledger) {
-              if (t.type === "income") map[t.accountId] = (map[t.accountId] ?? 0) + t.amount;
-              else if (t.type === "expense") map[t.accountId] = (map[t.accountId] ?? 0) - t.amount;
-              else if (t.type === "transfer") map[t.accountId] = (map[t.accountId] ?? 0) - t.amount;
-            }
-            return map;
-          };
-          const before = recompute(s.transactions);
-          const after = recompute(next);
-          const accounts = s.accounts.map((a) => ({
-            ...a,
-            balance: a.balance - (before[a.id] ?? 0) + (after[a.id] ?? 0),
-            updatedAt: now(),
-          }));
-          return { transactions: next, accounts };
-        });
-      },
-      removeTransaction: (id) => {
-        set((s) => {
-          const tx = s.transactions.find((t) => t.id === id);
-          if (!tx) return s;
-          let toRemoveIds = [id];
-          if (tx.transferGroupId) {
-            toRemoveIds = s.transactions
-              .filter((t) => t.transferGroupId === tx.transferGroupId)
-              .map((t) => t.id);
-          }
-          const removed = s.transactions.filter((t) => toRemoveIds.includes(t.id));
-          const accounts = s.accounts.map((a) => {
-            let delta = 0;
-            for (const t of removed) {
-              if (t.accountId !== a.id) continue;
-              if (t.type === "income") delta -= t.amount;
-              else if (t.type === "expense") delta += t.amount;
-              else if (t.type === "transfer") delta += t.amount;
-            }
-            return delta === 0 ? a : { ...a, balance: a.balance + delta, updatedAt: now() };
-          });
-          return {
-            transactions: s.transactions.filter((t) => !toRemoveIds.includes(t.id)),
-            accounts,
-          };
-        });
-      },
-
-      /* ---- income sources ---- */
-      addIncomeSource: (name, color = "oklch(0.72 0.16 230)") => {
-        const src: IncomeSource = { id: uid(), name, color, createdAt: now() };
-        set((s) => ({ incomeSources: [...s.incomeSources, src] }));
-        return src;
-      },
-      removeIncomeSource: (id) =>
-        set((s) => ({
-          incomeSources: s.incomeSources.filter((x) => x.id !== id),
-          transactions: s.transactions.map((t) =>
-            t.incomeSourceId === id ? { ...t, incomeSourceId: undefined } : t
-          ),
-        })),
-
-      /* ---- budgets ---- */
-      addBudget: (p) =>
-        set((s) => ({
-          budgets: [
-            ...s.budgets,
-            { ...p, id: uid(), createdAt: now(), updatedAt: now() },
-          ],
-        })),
-      updateBudget: (id, p) =>
-        set((s) => ({
-          budgets: s.budgets.map((b) =>
-            b.id === id ? { ...b, ...p, updatedAt: now() } : b
-          ),
-        })),
-      removeBudget: (id) =>
-        set((s) => ({ budgets: s.budgets.filter((b) => b.id !== id) })),
-
-      /* ---- debts ---- */
-      addDebt: (p) =>
-        set((s) => ({
-          debts: [
-            ...s.debts,
-            {
-              ...p,
-              id: uid(),
-              remainingDebt: p.remainingDebt ?? p.totalDebt,
-              status: "active",
-              createdAt: now(),
-              updatedAt: now(),
-            },
-          ],
-        })),
-      updateDebt: (id, p) =>
-        set((s) => ({
-          debts: s.debts.map((d) =>
-            d.id === id ? { ...d, ...p, updatedAt: now() } : d
-          ),
-        })),
-      removeDebt: (id) =>
-        set((s) => ({
-          debts: s.debts.filter((d) => d.id !== id),
-          debtPayments: s.debtPayments.filter((p) => p.debtId !== id),
-        })),
-      addDebtPayment: (p) => {
-        const payment: DebtPayment = { ...p, id: uid() };
-        set((s) => {
-          const debts = s.debts.map((d) => {
-            if (d.id !== p.debtId) return d;
-            const remaining = Math.max(0, d.remainingDebt - p.amount);
-            return {
-              ...d,
-              remainingDebt: remaining,
-              status: remaining === 0 ? ("paid" as DebtStatus) : d.status,
-              updatedAt: now(),
-            };
-          });
-          let accounts = s.accounts;
-          let transactions = s.transactions;
-          if (p.accountId) {
-            const tx: Transaction = {
-              id: uid(),
-              accountId: p.accountId,
-              type: "expense",
-              category: "Debt Payment",
-              amount: p.amount,
-              description: p.notes ?? `Debt payment`,
-              transactionDate: p.paidAt,
-              createdAt: now(),
-              updatedAt: now(),
-            };
-            transactions = [...s.transactions, tx];
-            accounts = s.accounts.map((a) =>
-              a.id === p.accountId
-                ? { ...a, balance: a.balance - p.amount, updatedAt: now() }
-                : a
-            );
-          }
-          return {
-            debts,
-            debtPayments: [...s.debtPayments, payment],
-            transactions,
-            accounts,
-          };
-        });
-      },
-      removeDebtPayment: (id) =>
-        set((s) => {
-          const pay = s.debtPayments.find((p) => p.id === id);
-          if (!pay) return s;
-          return {
-            debtPayments: s.debtPayments.filter((p) => p.id !== id),
-            debts: s.debts.map((d) =>
-              d.id === pay.debtId
-                ? {
-                    ...d,
-                    remainingDebt: Math.min(d.totalDebt, d.remainingDebt + pay.amount),
-                    status: "active",
-                    updatedAt: now(),
-                  }
-                : d
-            ),
-          };
-        }),
-
-      /* ---- trades ---- */
-      addTrade: (p) =>
-        set((s) => ({ trades: [...s.trades, { ...p, id: uid() }] })),
-      updateTrade: (id, p) =>
-        set((s) => ({
-          trades: s.trades.map((t) => (t.id === id ? { ...t, ...p } : t)),
-        })),
-      removeTrade: (id) =>
-        set((s) => ({ trades: s.trades.filter((t) => t.id !== id) })),
+        transactions = [...s.transactions, tx];
+        accounts = s.accounts.map((a) =>
+          a.id === p.accountId ? { ...a, balance: a.balance - p.amount, updatedAt: now() } : a,
+        );
+      }
+      return {
+        debts,
+        debtPayments: [...s.debtPayments, payment],
+        transactions,
+        accounts,
+      };
+    });
+  },
+  removeDebtPayment: async (id) =>
+    set((s) => {
+      const pay = s.debtPayments.find((p) => p.id === id);
+      if (!pay) return s;
+      return {
+        debtPayments: s.debtPayments.filter((p) => p.id !== id),
+        debts: s.debts.map((d) =>
+          d.id === pay.debtId
+            ? {
+                ...d,
+                remainingDebt: Math.min(d.totalDebt, d.remainingDebt + pay.amount),
+                status: "active",
+                updatedAt: now(),
+              }
+            : d,
+        ),
+      };
     }),
-    {
-      name: "baytasks-finance-v1",
-      storage: createJSONStorage(() => {
-        if (typeof window === "undefined") {
-          const noop: Storage = {
-            length: 0,
-            clear: () => {},
-            getItem: () => null,
-            key: () => null,
-            removeItem: () => {},
-            setItem: () => {},
-          };
-          return noop;
-        }
-        return localStorage;
-      }),
-    }
-  )
-);
+  /* ---- trades ---- */
+  addTrade: async (p) => set((s) => ({ trades: [...s.trades, { ...p, id: uid() }] })),
+  updateTrade: async (id, p) =>
+    set((s) => ({
+      trades: s.trades.map((t) => (t.id === id ? { ...t, ...p } : t)),
+    })),
+  removeTrade: async (id) => set((s) => ({ trades: s.trades.filter((t) => t.id !== id) })),
+}));
 
 /* Re-export selectors for convenience */
 export { default as selectors } from "./selectors";
-
 // referenced by rebuildBalances() helper (kept for callers that prefer it)
 export { rebuildBalances };

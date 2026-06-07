@@ -12,7 +12,8 @@ import {
   Sparkles,
   Timer,
   NotebookPen,
-  Library
+  Library,
+  Wallet
 } from "lucide-react";
 
 import {
@@ -74,6 +75,11 @@ const navItems = [
     label: "Install & API",
     icon: BookOpen,
   },
+  {
+  label: "Finance Hub",
+  to: "/finance",
+  icon: Wallet
+}
 ];
 
 export function Sidebar() {

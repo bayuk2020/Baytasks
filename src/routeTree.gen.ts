@@ -15,11 +15,20 @@ import { Route as LibraryRouteImport } from './routes/library'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as IndexoldRouteImport } from './routes/indexold'
 import { Route as HabitsRouteImport } from './routes/habits'
+import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BoardRouteImport } from './routes/board'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FinanceIndexRouteImport } from './routes/finance.index'
+import { Route as FinanceTransactionsRouteImport } from './routes/finance.transactions'
+import { Route as FinanceTradingRouteImport } from './routes/finance.trading'
+import { Route as FinanceDebtRouteImport } from './routes/finance.debt'
+import { Route as FinanceContactsRouteImport } from './routes/finance.contacts'
+import { Route as FinanceBudgetsRouteImport } from './routes/finance.budgets'
+import { Route as FinanceAnalyticsRouteImport } from './routes/finance.analytics'
+import { Route as FinanceAccountsRouteImport } from './routes/finance.accounts'
 import { Route as BookBookIdRouteImport } from './routes/book.$bookId'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -52,6 +61,11 @@ const HabitsRoute = HabitsRouteImport.update({
   path: '/habits',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
@@ -77,6 +91,46 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceIndexRoute = FinanceIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceTransactionsRoute = FinanceTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceTradingRoute = FinanceTradingRouteImport.update({
+  id: '/trading',
+  path: '/trading',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceDebtRoute = FinanceDebtRouteImport.update({
+  id: '/debt',
+  path: '/debt',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceContactsRoute = FinanceContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceBudgetsRoute = FinanceBudgetsRouteImport.update({
+  id: '/budgets',
+  path: '/budgets',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceAnalyticsRoute = FinanceAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceAccountsRoute = FinanceAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => FinanceRoute,
+} as any)
 const BookBookIdRoute = BookBookIdRouteImport.update({
   id: '/book/$bookId',
   path: '/book/$bookId',
@@ -89,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/board': typeof BoardRoute
   '/calendar': typeof CalendarRoute
   '/docs': typeof DocsRoute
+  '/finance': typeof FinanceRouteWithChildren
   '/habits': typeof HabitsRoute
   '/indexold': typeof IndexoldRoute
   '/journal': typeof JournalRoute
@@ -96,6 +151,14 @@ export interface FileRoutesByFullPath {
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
   '/book/$bookId': typeof BookBookIdRoute
+  '/finance/accounts': typeof FinanceAccountsRoute
+  '/finance/analytics': typeof FinanceAnalyticsRoute
+  '/finance/budgets': typeof FinanceBudgetsRoute
+  '/finance/contacts': typeof FinanceContactsRoute
+  '/finance/debt': typeof FinanceDebtRoute
+  '/finance/trading': typeof FinanceTradingRoute
+  '/finance/transactions': typeof FinanceTransactionsRoute
+  '/finance/': typeof FinanceIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -110,6 +173,14 @@ export interface FileRoutesByTo {
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
   '/book/$bookId': typeof BookBookIdRoute
+  '/finance/accounts': typeof FinanceAccountsRoute
+  '/finance/analytics': typeof FinanceAnalyticsRoute
+  '/finance/budgets': typeof FinanceBudgetsRoute
+  '/finance/contacts': typeof FinanceContactsRoute
+  '/finance/debt': typeof FinanceDebtRoute
+  '/finance/trading': typeof FinanceTradingRoute
+  '/finance/transactions': typeof FinanceTransactionsRoute
+  '/finance': typeof FinanceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -118,6 +189,7 @@ export interface FileRoutesById {
   '/board': typeof BoardRoute
   '/calendar': typeof CalendarRoute
   '/docs': typeof DocsRoute
+  '/finance': typeof FinanceRouteWithChildren
   '/habits': typeof HabitsRoute
   '/indexold': typeof IndexoldRoute
   '/journal': typeof JournalRoute
@@ -125,6 +197,14 @@ export interface FileRoutesById {
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
   '/book/$bookId': typeof BookBookIdRoute
+  '/finance/accounts': typeof FinanceAccountsRoute
+  '/finance/analytics': typeof FinanceAnalyticsRoute
+  '/finance/budgets': typeof FinanceBudgetsRoute
+  '/finance/contacts': typeof FinanceContactsRoute
+  '/finance/debt': typeof FinanceDebtRoute
+  '/finance/trading': typeof FinanceTradingRoute
+  '/finance/transactions': typeof FinanceTransactionsRoute
+  '/finance/': typeof FinanceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -134,6 +214,7 @@ export interface FileRouteTypes {
     | '/board'
     | '/calendar'
     | '/docs'
+    | '/finance'
     | '/habits'
     | '/indexold'
     | '/journal'
@@ -141,6 +222,14 @@ export interface FileRouteTypes {
     | '/pomodoro'
     | '/settings'
     | '/book/$bookId'
+    | '/finance/accounts'
+    | '/finance/analytics'
+    | '/finance/budgets'
+    | '/finance/contacts'
+    | '/finance/debt'
+    | '/finance/trading'
+    | '/finance/transactions'
+    | '/finance/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -155,6 +244,14 @@ export interface FileRouteTypes {
     | '/pomodoro'
     | '/settings'
     | '/book/$bookId'
+    | '/finance/accounts'
+    | '/finance/analytics'
+    | '/finance/budgets'
+    | '/finance/contacts'
+    | '/finance/debt'
+    | '/finance/trading'
+    | '/finance/transactions'
+    | '/finance'
   id:
     | '__root__'
     | '/'
@@ -162,6 +259,7 @@ export interface FileRouteTypes {
     | '/board'
     | '/calendar'
     | '/docs'
+    | '/finance'
     | '/habits'
     | '/indexold'
     | '/journal'
@@ -169,6 +267,14 @@ export interface FileRouteTypes {
     | '/pomodoro'
     | '/settings'
     | '/book/$bookId'
+    | '/finance/accounts'
+    | '/finance/analytics'
+    | '/finance/budgets'
+    | '/finance/contacts'
+    | '/finance/debt'
+    | '/finance/trading'
+    | '/finance/transactions'
+    | '/finance/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -177,6 +283,7 @@ export interface RootRouteChildren {
   BoardRoute: typeof BoardRoute
   CalendarRoute: typeof CalendarRoute
   DocsRoute: typeof DocsRoute
+  FinanceRoute: typeof FinanceRouteWithChildren
   HabitsRoute: typeof HabitsRoute
   IndexoldRoute: typeof IndexoldRoute
   JournalRoute: typeof JournalRoute
@@ -230,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HabitsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs': {
       id: '/docs'
       path: '/docs'
@@ -265,6 +379,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finance/': {
+      id: '/finance/'
+      path: '/'
+      fullPath: '/finance/'
+      preLoaderRoute: typeof FinanceIndexRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/transactions': {
+      id: '/finance/transactions'
+      path: '/transactions'
+      fullPath: '/finance/transactions'
+      preLoaderRoute: typeof FinanceTransactionsRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/trading': {
+      id: '/finance/trading'
+      path: '/trading'
+      fullPath: '/finance/trading'
+      preLoaderRoute: typeof FinanceTradingRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/debt': {
+      id: '/finance/debt'
+      path: '/debt'
+      fullPath: '/finance/debt'
+      preLoaderRoute: typeof FinanceDebtRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/contacts': {
+      id: '/finance/contacts'
+      path: '/contacts'
+      fullPath: '/finance/contacts'
+      preLoaderRoute: typeof FinanceContactsRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/budgets': {
+      id: '/finance/budgets'
+      path: '/budgets'
+      fullPath: '/finance/budgets'
+      preLoaderRoute: typeof FinanceBudgetsRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/analytics': {
+      id: '/finance/analytics'
+      path: '/analytics'
+      fullPath: '/finance/analytics'
+      preLoaderRoute: typeof FinanceAnalyticsRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/accounts': {
+      id: '/finance/accounts'
+      path: '/accounts'
+      fullPath: '/finance/accounts'
+      preLoaderRoute: typeof FinanceAccountsRouteImport
+      parentRoute: typeof FinanceRoute
+    }
     '/book/$bookId': {
       id: '/book/$bookId'
       path: '/book/$bookId'
@@ -275,12 +445,38 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface FinanceRouteChildren {
+  FinanceAccountsRoute: typeof FinanceAccountsRoute
+  FinanceAnalyticsRoute: typeof FinanceAnalyticsRoute
+  FinanceBudgetsRoute: typeof FinanceBudgetsRoute
+  FinanceContactsRoute: typeof FinanceContactsRoute
+  FinanceDebtRoute: typeof FinanceDebtRoute
+  FinanceTradingRoute: typeof FinanceTradingRoute
+  FinanceTransactionsRoute: typeof FinanceTransactionsRoute
+  FinanceIndexRoute: typeof FinanceIndexRoute
+}
+
+const FinanceRouteChildren: FinanceRouteChildren = {
+  FinanceAccountsRoute: FinanceAccountsRoute,
+  FinanceAnalyticsRoute: FinanceAnalyticsRoute,
+  FinanceBudgetsRoute: FinanceBudgetsRoute,
+  FinanceContactsRoute: FinanceContactsRoute,
+  FinanceDebtRoute: FinanceDebtRoute,
+  FinanceTradingRoute: FinanceTradingRoute,
+  FinanceTransactionsRoute: FinanceTransactionsRoute,
+  FinanceIndexRoute: FinanceIndexRoute,
+}
+
+const FinanceRouteWithChildren =
+  FinanceRoute._addFileChildren(FinanceRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
   BoardRoute: BoardRoute,
   CalendarRoute: CalendarRoute,
   DocsRoute: DocsRoute,
+  FinanceRoute: FinanceRouteWithChildren,
   HabitsRoute: HabitsRoute,
   IndexoldRoute: IndexoldRoute,
   JournalRoute: JournalRoute,
