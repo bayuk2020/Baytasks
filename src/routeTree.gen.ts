@@ -24,6 +24,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as FinanceIndexRouteImport } from './routes/finance.index'
 import { Route as FinanceTransactionsRouteImport } from './routes/finance.transactions'
 import { Route as FinanceTradingRouteImport } from './routes/finance.trading'
+import { Route as FinanceImportRouteImport } from './routes/finance.import'
 import { Route as FinanceDebtRouteImport } from './routes/finance.debt'
 import { Route as FinanceContactsRouteImport } from './routes/finance.contacts'
 import { Route as FinanceBudgetsRouteImport } from './routes/finance.budgets'
@@ -106,6 +107,11 @@ const FinanceTradingRoute = FinanceTradingRouteImport.update({
   path: '/trading',
   getParentRoute: () => FinanceRoute,
 } as any)
+const FinanceImportRoute = FinanceImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => FinanceRoute,
+} as any)
 const FinanceDebtRoute = FinanceDebtRouteImport.update({
   id: '/debt',
   path: '/debt',
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/finance/budgets': typeof FinanceBudgetsRoute
   '/finance/contacts': typeof FinanceContactsRoute
   '/finance/debt': typeof FinanceDebtRoute
+  '/finance/import': typeof FinanceImportRoute
   '/finance/trading': typeof FinanceTradingRoute
   '/finance/transactions': typeof FinanceTransactionsRoute
   '/finance/': typeof FinanceIndexRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/finance/budgets': typeof FinanceBudgetsRoute
   '/finance/contacts': typeof FinanceContactsRoute
   '/finance/debt': typeof FinanceDebtRoute
+  '/finance/import': typeof FinanceImportRoute
   '/finance/trading': typeof FinanceTradingRoute
   '/finance/transactions': typeof FinanceTransactionsRoute
   '/finance': typeof FinanceIndexRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/finance/budgets': typeof FinanceBudgetsRoute
   '/finance/contacts': typeof FinanceContactsRoute
   '/finance/debt': typeof FinanceDebtRoute
+  '/finance/import': typeof FinanceImportRoute
   '/finance/trading': typeof FinanceTradingRoute
   '/finance/transactions': typeof FinanceTransactionsRoute
   '/finance/': typeof FinanceIndexRoute
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/finance/budgets'
     | '/finance/contacts'
     | '/finance/debt'
+    | '/finance/import'
     | '/finance/trading'
     | '/finance/transactions'
     | '/finance/'
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/finance/budgets'
     | '/finance/contacts'
     | '/finance/debt'
+    | '/finance/import'
     | '/finance/trading'
     | '/finance/transactions'
     | '/finance'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/finance/budgets'
     | '/finance/contacts'
     | '/finance/debt'
+    | '/finance/import'
     | '/finance/trading'
     | '/finance/transactions'
     | '/finance/'
@@ -400,6 +412,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FinanceTradingRouteImport
       parentRoute: typeof FinanceRoute
     }
+    '/finance/import': {
+      id: '/finance/import'
+      path: '/import'
+      fullPath: '/finance/import'
+      preLoaderRoute: typeof FinanceImportRouteImport
+      parentRoute: typeof FinanceRoute
+    }
     '/finance/debt': {
       id: '/finance/debt'
       path: '/debt'
@@ -451,6 +470,7 @@ interface FinanceRouteChildren {
   FinanceBudgetsRoute: typeof FinanceBudgetsRoute
   FinanceContactsRoute: typeof FinanceContactsRoute
   FinanceDebtRoute: typeof FinanceDebtRoute
+  FinanceImportRoute: typeof FinanceImportRoute
   FinanceTradingRoute: typeof FinanceTradingRoute
   FinanceTransactionsRoute: typeof FinanceTransactionsRoute
   FinanceIndexRoute: typeof FinanceIndexRoute
@@ -462,6 +482,7 @@ const FinanceRouteChildren: FinanceRouteChildren = {
   FinanceBudgetsRoute: FinanceBudgetsRoute,
   FinanceContactsRoute: FinanceContactsRoute,
   FinanceDebtRoute: FinanceDebtRoute,
+  FinanceImportRoute: FinanceImportRoute,
   FinanceTradingRoute: FinanceTradingRoute,
   FinanceTransactionsRoute: FinanceTransactionsRoute,
   FinanceIndexRoute: FinanceIndexRoute,

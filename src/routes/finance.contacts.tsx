@@ -28,6 +28,15 @@ const CONTACT_TYPES: ContactType[] = [
   "other",
 ];
 
+const TRANSLATED_TYPES: Record<ContactType, string> = {
+  person: "Perorangan",
+  family: "Keluarga",
+  employee: "Karyawan",
+  vendor: "Vendor",
+  customer: "Pelanggan",
+  other: "Lainnya",
+};
+
 function ContactsPage() {
   const contacts = useFinanceStore((state) => state.contacts);
   const loadContacts = useFinanceStore((state) => state.loadContacts);
@@ -40,7 +49,7 @@ function ContactsPage() {
   useEffect(() => {
     loadContacts().catch((error) => {
       console.error(error);
-      toast.error("Unable to load contacts");
+      toast.error("Gagal memuat kontak");
     });
   }, [loadContacts]);
 
@@ -68,15 +77,15 @@ function ContactsPage() {
   };
 
   const remove = async (contact: Contact) => {
-    if (!confirm(`Delete contact "${contact.name}"? Existing transactions will remain.`)) {
+    if (!confirm(`Hapus kontak "${contact.name}"? Transaksi yang sudah ada akan tetap disimpan.`)) {
       return;
     }
     try {
       await removeContact(contact.id);
-      toast.success("Contact deleted");
+      toast.success("Kontak berhasil dihapus");
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "Unable to delete contact");
+      toast.error(error instanceof Error ? error.message : "Gagal menghapus kontak");
     }
   };
 
@@ -84,13 +93,13 @@ function ContactsPage() {
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Contacts</h2>
+          <h2 className="text-lg font-semibold">Kontak</h2>
           <p className="text-sm text-muted-foreground">
-            People and organizations linked to your transactions.
+            Orang dan organisasi yang terhubung dengan transaksi Anda.
           </p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="mr-1 h-4 w-4" /> New Contact
+          <Plus className="mr-1 h-4 w-4" /> Kontak Baru
         </Button>
       </div>
 
@@ -100,7 +109,7 @@ function ContactsPage() {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search name, phone, or notes..."
+            placeholder="Cari nama, telepon, atau catatan..."
             className="pl-9"
           />
         </div>
@@ -112,10 +121,10 @@ function ContactsPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="all">Semua Tipe</SelectItem>
             {CONTACT_TYPES.map((type) => (
-              <SelectItem key={type} value={type} className="capitalize">
-                {type}
+              <SelectItem key={type} value={type}>
+                {TRANSLATED_TYPES[type]}
               </SelectItem>
             ))}
           </SelectContent>
@@ -125,7 +134,7 @@ function ContactsPage() {
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center">
           <UserRound className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-3 text-sm text-muted-foreground">No contacts found.</p>
+          <p className="mt-3 text-sm text-muted-foreground">Kontak tidak ditemukan.</p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -138,11 +147,9 @@ function ContactsPage() {
                 <div className="min-w-0">
                   <h3 className="truncate font-medium">{contact.name}</h3>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="capitalize">
-                      {contact.type}
-                    </Badge>
+                    <Badge variant="secondary">{TRANSLATED_TYPES[contact.type]}</Badge>
                     <span className="text-xs text-muted-foreground">
-                      {contact.transactionCount ?? 0} transactions
+                      {contact.transactionCount ?? 0} transaksi
                     </span>
                   </div>
                 </div>

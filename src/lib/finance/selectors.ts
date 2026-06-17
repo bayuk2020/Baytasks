@@ -65,11 +65,14 @@ export function tradingPnL(trades: Trade[]) {
   }, 0);
 }
 
-export function incomeBySource(txs: Transaction[], sources: { id: string; name: string; color: string }[], range = monthRange()) {
+// REVISI: Mengizinkan bypass range jika transaksi sudah terfilter di luar selektor
+export function incomeBySource(txs: Transaction[], sources: { id: string; name: string; color: string }[], range?: MonthRange) {
   const map = new Map<string, number>();
   for (const t of txs) {
     if (t.type !== "income" || t.transferGroupId) continue;
-    if (t.transactionDate < range.start || t.transactionDate >= range.end) continue;
+    // Jika range dikirim, lakukan validasi waktu. Jika tidak, percayakan pada filter komponen
+    if (range && (t.transactionDate < range.start || t.transactionDate >= range.end)) continue;
+    
     const key = t.incomeSourceId ?? "unassigned";
     map.set(key, (map.get(key) ?? 0) + t.amount);
   }
@@ -83,11 +86,13 @@ export function incomeBySource(txs: Transaction[], sources: { id: string; name: 
     .filter((x) => x.value > 0);
 }
 
-export function expenseByCategory(txs: Transaction[], range = monthRange()) {
+// REVISI: Mengizinkan bypass range agar kategori pengeluaran tahunan/bulanan terbaca utuh
+export function expenseByCategory(txs: Transaction[], range?: MonthRange) {
   const map = new Map<string, number>();
   for (const t of txs) {
     if (t.type !== "expense") continue;
-    if (t.transactionDate < range.start || t.transactionDate >= range.end) continue;
+    if (range && (t.transactionDate < range.start || t.transactionDate >= range.end)) continue;
+    
     map.set(t.category, (map.get(t.category) ?? 0) + t.amount);
   }
   return Array.from(map.entries())
@@ -95,16 +100,20 @@ export function expenseByCategory(txs: Transaction[], range = monthRange()) {
     .sort((a, b) => b.value - a.value);
 }
 
-export function cashflowTrend(txs: Transaction[], months = 6) {
+// REVISI: Membuat tren dasar grafik reaktif terhadap tahun yang sedang aktif di filter komponen
+export function cashflowTrend(txs: Transaction[], months = 6, baseRange?: MonthRange) {
   const out: { month: string; income: number; expense: number; net: number }[] = [];
-  const now = new Date();
+  
+  // Ambil tahun target dari baseRange yang dikirim komponen, jalankan fallback ke waktu sekarang jika kosong
+  const referenceDate = baseRange ? new Date(baseRange.start) : new Date();
+  
   for (let i = months - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const d = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - i, 1);
     const r = monthRange(d);
     const inc = monthlyIncome(txs, r);
     const exp = monthlyExpense(txs, r);
     out.push({
-      month: d.toLocaleString(undefined, { month: "short" }),
+      month: d.toLocaleString("id-ID", { month: "short" }), // Menggunakan format lokal ID (Jan, Feb, Mrt...)
       income: inc,
       expense: exp,
       net: inc - exp,

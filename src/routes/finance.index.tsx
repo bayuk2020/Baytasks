@@ -36,29 +36,29 @@ function Overview() {
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Net Worth"
+          label="Kekayaan Bersih"
           value={formatCurrency(s.netWorth)}
-          hint="Assets − Liabilities"
+          hint="Aset − Liabilitas"
           icon={<Wallet className="h-4 w-4" />}
           tone={s.netWorth >= 0 ? "positive" : "negative"}
         />
         <StatCard
-          label="Total Cash"
+          label="Total Kas"
           value={formatCurrency(s.totalCash)}
-          hint={`${s.accounts.length} account${s.accounts.length === 1 ? "" : "s"}`}
+          hint={`${s.accounts.length} akun`}
           icon={<Banknote className="h-4 w-4" />}
         />
         <StatCard
-          label="Monthly Cashflow"
+          label="Arus Kas Bulanan"
           value={formatCurrency(s.monthlyCashflow)}
-          hint={`In ${formatCurrency(s.monthlyIncome)} · Out ${formatCurrency(s.monthlyExpense)}`}
+          hint={`Masuk ${formatCurrency(s.monthlyIncome)} · Keluar ${formatCurrency(s.monthlyExpense)}`}
           icon={s.monthlyCashflow >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
           tone={s.monthlyCashflow >= 0 ? "positive" : "negative"}
         />
         <StatCard
-          label="Debt Remaining"
+          label="Sisa Utang"
           value={formatCurrency(s.debtRemaining)}
-          hint={`Monthly obligation ${formatCurrency(s.monthlyDebtObligation)}`}
+          hint={`Kewajiban bulanan ${formatCurrency(s.monthlyDebtObligation)}`}
           icon={<Receipt className="h-4 w-4" />}
           tone={s.debtRemaining > 0 ? "warning" : "positive"}
         />
@@ -66,12 +66,12 @@ function Overview() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <QuickPanel
-          title="Accounts"
+          title="Daftar Akun"
           to="/finance/accounts"
           icon={<Wallet className="h-4 w-4" />}
         >
           {s.accounts.length === 0 ? (
-            <Empty text="No accounts yet — add your first wallet or bank." />
+            <Empty text="Belum ada akun — tambahkan dompet atau bank pertama Anda." />
           ) : (
             <ul className="divide-y divide-border">
               {s.accounts.slice(0, 5).map((a) => (
@@ -79,7 +79,9 @@ function Overview() {
                   <div className="flex items-center gap-3">
                     <span className="h-2 w-2 rounded-full" style={{ background: a.color }} />
                     <span className="font-medium">{a.name}</span>
-                    <span className="text-xs text-muted-foreground capitalize">{a.type}</span>
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {a.type === "bank" ? "Bank" : a.type === "cash" ? "Tunai" : a.type === "ewallet" ? "E-Wallet" : a.type === "trading" ? "Trading" : a.type}
+                    </span>
                   </div>
                   <span className="tabular-nums">{formatCurrency(a.balance)}</span>
                 </li>
@@ -89,12 +91,12 @@ function Overview() {
         </QuickPanel>
 
         <QuickPanel
-          title="Recent Transactions"
+          title="Transaksi Terakhir"
           to="/finance/transactions"
           icon={<LineChartIcon className="h-4 w-4" />}
         >
           {s.transactions.length === 0 ? (
-            <Empty text="Log your first income or expense." />
+            <Empty text="Catat pemasukan atau pengeluaran pertama Anda." />
           ) : (
             <ul className="divide-y divide-border">
               {[...s.transactions]
@@ -105,7 +107,7 @@ function Overview() {
                     <div className="min-w-0">
                       <div className="truncate font-medium">{t.description || t.category}</div>
                       <div className="text-xs text-muted-foreground">
-                        {new Date(t.transactionDate).toLocaleDateString()} · {t.category}
+                        {new Date(t.transactionDate).toLocaleDateString("id-ID")} · {t.category}
                       </div>
                     </div>
                     <span
@@ -152,7 +154,7 @@ function QuickPanel({
           to={to as never}
           className="flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
         >
-          View all <ArrowRight className="h-3 w-3" />
+          Lihat semua <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
       {children}

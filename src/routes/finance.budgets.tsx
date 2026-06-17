@@ -30,15 +30,15 @@ function BudgetsPage() {
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Budgets</h2>
+        <h2 className="text-lg font-semibold">Anggaran</h2>
         <Button onClick={() => { setEditing(undefined); setOpen(true); }}>
-          <Plus className="mr-1 h-4 w-4" /> New Budget
+          <Plus className="mr-1 h-4 w-4" /> Anggaran Baru
         </Button>
       </div>
 
       {budgets.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          No budgets yet. Set a monthly cap per expense category.
+          Belum ada anggaran. Atur batas maksimal bulanan untuk setiap kategori pengeluaran.
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -58,7 +58,7 @@ function BudgetsPage() {
                   <div>
                     <div className="font-semibold">{b.category}</div>
                     <div className="text-xs text-muted-foreground">
-                      {formatCurrency(spent)} of {formatCurrency(b.monthlyLimit)}
+                      {formatCurrency(spent)} dari {formatCurrency(b.monthlyLimit)}
                     </div>
                   </div>
                   <div className="flex gap-1 opacity-0 transition group-hover:opacity-100">
@@ -77,10 +77,10 @@ function BudgetsPage() {
                   />
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{pct}% used</span>
+                  <span>Terpakai {pct}%</span>
                   <span className={over ? "text-rose-400" : ""}>
-                    {over ? `Over by ${formatCurrency(spent - b.monthlyLimit)}` :
-                      `${formatCurrency(b.monthlyLimit - spent)} left`}
+                    {over ? `Melebihi batas ${formatCurrency(spent - b.monthlyLimit)}` :
+                      `Tersisa ${formatCurrency(b.monthlyLimit - spent)}`}
                   </span>
                 </div>
               </motion.div>

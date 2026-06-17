@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -77,7 +78,7 @@ export function TransactionFormModal({ open, onClose, editing, defaultType = "ex
     if (!open || contacts.length > 0) return;
     loadContacts().catch((error) => {
       console.error(error);
-      toast.error("Unable to load contacts");
+      toast.error("Gagal memuat daftar kontak");
     });
   }, [contacts.length, loadContacts, open]);
 
@@ -87,14 +88,15 @@ export function TransactionFormModal({ open, onClose, editing, defaultType = "ex
   const submit = async () => {
     const amt = Number(amount);
     if (!accountId || !amt || amt <= 0) {
-      toast.error("Choose an account and enter a valid amount");
+      toast.error("Silakan pilih akun dan masukkan jumlah uang yang valid");
       return;
     }
     if (type === "transfer" && (!toAccountId || toAccountId === accountId)) {
-      toast.error("Choose a different destination account");
+      toast.error("Silakan pilih akun tujuan transfer yang berbeda");
       return;
     }
 
+    // Payload murni menggunakan camelCase tanpa campuran snake_case sama sekali
     const payload = {
       accountId,
       toAccountId: type === "transfer" ? toAccountId : undefined,
@@ -102,7 +104,7 @@ export function TransactionFormModal({ open, onClose, editing, defaultType = "ex
       category: type === "transfer" ? "Transfer" : category || cats[0] || "Other",
       amount: amt,
       description: description.trim() || undefined,
-      transactionDate: new Date(date).getTime(),
+      transactionDate: date, // Dikirim berupa string 'YYYY-MM-DD' agar lolos validasi Laravel
       incomeSourceId: type === "income" ? incomeSourceId || undefined : undefined,
       contactId: contactId || undefined,
     };
@@ -114,11 +116,11 @@ export function TransactionFormModal({ open, onClose, editing, defaultType = "ex
       } else {
         await addTransaction(payload);
       }
-      toast.success(editing ? "Transaction updated" : "Transaction created");
+      toast.success(editing ? "Transaksi berhasil diperbarui" : "Transaksi berhasil dibuat");
       onClose();
     } catch (err) {
       console.error(err);
-      toast.error(err instanceof Error ? err.message : "Unable to save transaction");
+      toast.error(err instanceof Error ? err.message : "Gagal menyimpan transaksi");
     } finally {
       setSaving(false);
     }
@@ -128,32 +130,36 @@ export function TransactionFormModal({ open, onClose, editing, defaultType = "ex
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit Transaction" : "New Transaction"}</DialogTitle>
+          <DialogTitle>{editing ? "Edit Transaksi" : "Transaksi Baru"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
           <div className="grid grid-cols-3 gap-2">
-            {(["income", "expense", "transfer"] as TransactionType[]).map((t) => (
+            {([
+              { value: "income", label: "Pemasukan" },
+              { value: "expense", label: "Pengeluaran" },
+              { value: "transfer", label: "Transfer" }
+            ]).map((t) => (
               <button
-                key={t}
+                key={t.value}
                 type="button"
                 disabled={!!editing}
-                onClick={() => setType(t)}
+                onClick={() => setType(t.value as TransactionType)}
                 className={`rounded-lg border px-3 py-2 text-sm capitalize transition ${
-                  type === t
+                  type === t.value
                     ? "border-primary bg-primary/10 text-foreground"
                     : "border-border text-muted-foreground hover:bg-accent"
                 } ${editing ? "opacity-60" : ""}`}
               >
-                {t}
+                {t.label}
               </button>
             ))}
           </div>
 
           <div>
-            <Label>{type === "transfer" ? "From Account" : "Account"}</Label>
+            <Label>{type === "transfer" ? "Dari Akun" : "Akun"}</Label>
             <Select value={accountId} onValueChange={setAccountId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select account" />
+                <SelectValue placeholder="Pilih akun" />
               </SelectTrigger>
               <SelectContent>
                 {accounts.map((a) => (
@@ -167,10 +173,10 @@ export function TransactionFormModal({ open, onClose, editing, defaultType = "ex
 
           {type === "transfer" && (
             <div>
-              <Label>To Account</Label>
+              <Label>Ke Akun</Label>
               <Select value={toAccountId} onValueChange={setToAccountId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select destination" />
+                  <SelectValue placeholder="Pilih akun tujuan" />
                 </SelectTrigger>
                 <SelectContent>
                   {accounts
@@ -187,10 +193,10 @@ export function TransactionFormModal({ open, onClose, editing, defaultType = "ex
 
           {type !== "transfer" && (
             <div>
-              <Label>Category</Label>
+              <Label>Kategori</Label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
                 <SelectContent>
                   {cats.map((c) => (
@@ -205,10 +211,10 @@ export function TransactionFormModal({ open, onClose, editing, defaultType = "ex
 
           {type === "income" && (
             <div>
-              <Label>Income Source</Label>
+              <Label>Sumber Pendapatan</Label>
               <Select value={incomeSourceId} onValueChange={setIncomeSourceId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Optional" />
+                  <SelectValue placeholder="Opsional" />
                 </SelectTrigger>
                 <SelectContent>
                   {incomeSources.map((s) => (
@@ -222,7 +228,7 @@ export function TransactionFormModal({ open, onClose, editing, defaultType = "ex
           )}
 
           <div>
-            <Label>{type === "transfer" ? "Recipient / Party" : "Contact / Party"}</Label>
+            <Label>{type === "transfer" ? "Penerima / Pihak Kedua" : "Kontak / Pihak Terkait"}</Label>
             <ContactCombobox
               contacts={contacts}
               value={contactId || undefined}
@@ -233,16 +239,16 @@ export function TransactionFormModal({ open, onClose, editing, defaultType = "ex
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Amount</Label>
+              <Label>Jumlah Uang</Label>
               <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
             </div>
             <div>
-              <Label>Date</Label>
+              <Label>Tanggal</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
           </div>
           <div>
-            <Label>Description</Label>
+            <Label>Keterangan</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -252,10 +258,10 @@ export function TransactionFormModal({ open, onClose, editing, defaultType = "ex
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={saving}>
-            Cancel
+            Batal
           </Button>
           <Button onClick={submit} disabled={saving}>
-            {saving ? "Saving..." : editing ? "Save" : "Create"}
+            {saving ? "Menyimpan..." : editing ? "Simpan" : "Buat"}
           </Button>
         </DialogFooter>
       </DialogContent>

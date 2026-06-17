@@ -36,15 +36,15 @@ function TradingPage() {
     <div className="grid gap-5">
       <div className="grid gap-4 sm:grid-cols-4">
         <StatCard label="Total PnL" value={formatCurrency(totalPnL)} tone={totalPnL >= 0 ? "positive" : "negative"} />
-        <StatCard label="Open Trades" value={openCount} />
-        <StatCard label="Closed Trades" value={closedCount} />
+        <StatCard label="Posisi Terbuka" value={openCount} />
+        <StatCard label="Posisi Tertutup" value={closedCount} />
         <StatCard label="Win Rate" value={`${winRate}%`} />
       </div>
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Trades</h2>
+        <h2 className="text-lg font-semibold">Transaksi Trading</h2>
         <Button onClick={() => { setEditing(undefined); setOpen(true); }}>
-          <Plus className="mr-1 h-4 w-4" /> New Trade
+          <Plus className="mr-1 h-4 w-4" /> Trading Baru
         </Button>
       </div>
 
@@ -52,11 +52,11 @@ function TradingPage() {
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-card/40 text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
-              <th className="px-4 py-3 text-left">Symbol</th>
-              <th className="px-4 py-3 text-left">Side</th>
-              <th className="px-4 py-3 text-right">Qty</th>
-              <th className="px-4 py-3 text-right">Entry</th>
-              <th className="px-4 py-3 text-right">Exit</th>
+              <th className="px-4 py-3 text-left">Simbol</th>
+              <th className="px-4 py-3 text-left">Posisi</th>
+              <th className="px-4 py-3 text-right">Jumlah</th>
+              <th className="px-4 py-3 text-right">Harga Masuk</th>
+              <th className="px-4 py-3 text-right">Harga Keluar</th>
               <th className="px-4 py-3 text-right">PnL</th>
               <th className="px-4 py-3 text-left">Status</th>
               <th className="px-4 py-3"></th>
@@ -64,14 +64,16 @@ function TradingPage() {
           </thead>
           <tbody className="divide-y divide-border">
             {trades.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">No trades yet.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">Belum ada transaksi trading.</td></tr>
             )}
             {[...trades].sort((a, b) => b.openedAt - a.openedAt).map((t) => {
               const pnl = pnlOf(t);
               return (
                 <tr key={t.id} className="hover:bg-accent/40">
                   <td className="px-4 py-3 font-medium">{t.symbol}</td>
-                  <td className="px-4 py-3 capitalize text-muted-foreground">{t.side}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {t.side === "buy" ? "Beli (Long)" : t.side === "sell" ? "Jual (Short)" : t.side}
+                  </td>
                   <td className="px-4 py-3 text-right tabular-nums">{t.quantity}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{t.entryPrice}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{t.exitPrice ?? "—"}</td>
@@ -83,14 +85,18 @@ function TradingPage() {
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ${
                       t.status === "open" ? "bg-primary/15 text-primary" : "bg-emerald-500/15 text-emerald-400"
-                    }`}>{t.status}</span>
+                    }`}>
+                      {t.status === "open" ? "Terbuka" : t.status === "closed" ? "Tertutup" : t.status}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
                       <Button size="icon" variant="ghost" onClick={() => { setEditing(t); setOpen(true); }}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => removeTrade(t.id)}>
+                      <Button size="icon" variant="ghost" onClick={() => {
+                        if (confirm(`Hapus transaksi trading "${t.symbol}"?`)) removeTrade(t.id);
+                      }}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>

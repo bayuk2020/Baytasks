@@ -29,13 +29,13 @@ function AccountsPage() {
 
   useEffect(() => {
     loadAccounts().catch(console.error);
-  }, []);
+  }, [loadAccounts]);
 
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">
-          Accounts
+          Akun
         </h2>
 
         <Button
@@ -45,14 +45,14 @@ function AccountsPage() {
           }}
         >
           <Plus className="mr-1 h-4 w-4" />
-          New Account
+          Akun Baru
         </Button>
       </div>
 
       {accounts.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          No accounts yet. Create your first one —
-          BCA, GoPay, Cash, anything.
+          Belum ada akun. Buat akun pertama Anda —
+          BCA, GoPay, Tunai, atau apa saja.
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -68,7 +68,7 @@ function AccountsPage() {
                 onDelete={() => {
                   if (
                     confirm(
-                      `Delete "${a.name}"? This removes its transactions too.`
+                      `Hapus "${a.name}"? Tindakan ini juga akan menghapus semua transaksinya.`
                     )
                   ) {
                     removeAccount(a.id);

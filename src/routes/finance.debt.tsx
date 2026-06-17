@@ -31,27 +31,27 @@ function DebtPage() {
     const months = Math.ceil(d.remainingDebt / d.monthlyPayment);
     const date = new Date();
     date.setMonth(date.getMonth() + months);
-    return `${months} mo · ${date.toLocaleDateString(undefined, { month: "short", year: "numeric" })}`;
+    return `${months} bln · ${date.toLocaleDateString("id-ID", { month: "short", year: "numeric" })}`;
   };
 
   return (
     <div className="grid gap-5">
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total Debt" value={formatCurrency(total)} icon={<Receipt className="h-4 w-4" />} />
-        <StatCard label="Remaining" value={formatCurrency(remaining)} tone={remaining > 0 ? "warning" : "positive"} icon={<Coins className="h-4 w-4" />} />
-        <StatCard label="Monthly Obligation" value={formatCurrency(monthly)} icon={<CalendarDays className="h-4 w-4" />} />
+        <StatCard label="Total Utang" value={formatCurrency(total)} icon={<Receipt className="h-4 w-4" />} />
+        <StatCard label="Sisa Utang" value={formatCurrency(remaining)} tone={remaining > 0 ? "warning" : "positive"} icon={<Coins className="h-4 w-4" />} />
+        <StatCard label="Kewajiban Bulanan" value={formatCurrency(monthly)} icon={<CalendarDays className="h-4 w-4" />} />
       </div>
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Debts</h2>
+        <h2 className="text-lg font-semibold">Utang</h2>
         <Button onClick={() => { setEditing(undefined); setFormOpen(true); }}>
-          <Plus className="mr-1 h-4 w-4" /> New Debt
+          <Plus className="mr-1 h-4 w-4" /> Utang Baru
         </Button>
       </div>
 
       {debts.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          No debts tracked. Add a creditor to start.
+          Belum ada utang yang dicatat. Tambahkan pemberi pinjaman untuk memulai.
         </div>
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
@@ -75,10 +75,12 @@ function DebtPage() {
                         d.status === "paid" ? "bg-emerald-500/15 text-emerald-400" :
                         d.status === "overdue" ? "bg-rose-500/15 text-rose-400" :
                         "bg-primary/15 text-primary"
-                      }`}>{d.status}</span>
+                      }`}>
+                        {d.status === "paid" ? "Lunas" : d.status === "overdue" ? "Jatuh Tempo" : d.status}
+                      </span>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {formatCurrency(d.remainingDebt)} remaining of {formatCurrency(d.totalDebt)}
+                      Sisa {formatCurrency(d.remainingDebt)} dari {formatCurrency(d.totalDebt)}
                     </div>
                   </div>
                   <div className="flex gap-1 opacity-0 transition group-hover:opacity-100">
@@ -86,7 +88,7 @@ function DebtPage() {
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button size="icon" variant="ghost" onClick={() => {
-                      if (confirm(`Delete debt "${d.creditor}"?`)) removeDebt(d.id);
+                      if (confirm(`Hapus utang "${d.creditor}"?`)) removeDebt(d.id);
                     }}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -97,18 +99,18 @@ function DebtPage() {
                   <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                 </div>
                 <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-                  <div>{pct}% paid</div>
-                  <div>Monthly {formatCurrency(d.monthlyPayment)}</div>
-                  <div className="text-right">ETA {estPayoff(d)}</div>
+                  <div>{pct}% dibayar</div>
+                  <div>Bulanan {formatCurrency(d.monthlyPayment)}</div>
+                  <div className="text-right">Estimasi {estPayoff(d)}</div>
                 </div>
 
                 {history.length > 0 && (
                   <div className="mt-3 border-t border-border pt-3">
-                    <div className="mb-1 text-xs font-medium text-muted-foreground">Recent payments</div>
+                    <div className="mb-1 text-xs font-medium text-muted-foreground">Pembayaran terakhir</div>
                     <ul className="space-y-1 text-xs">
                       {history.map((p) => (
                         <li key={p.id} className="flex justify-between">
-                          <span className="text-muted-foreground">{new Date(p.paidAt).toLocaleDateString()}</span>
+                          <span className="text-muted-foreground">{new Date(p.paidAt).toLocaleDateString("id-ID")}</span>
                           <span className="tabular-nums">{formatCurrency(p.amount)}</span>
                         </li>
                       ))}
@@ -118,7 +120,7 @@ function DebtPage() {
 
                 <div className="mt-3 flex justify-end">
                   <Button size="sm" onClick={() => setPayDebt(d)} disabled={d.remainingDebt <= 0}>
-                    Record Payment
+                    Catat Pembayaran
                   </Button>
                 </div>
               </motion.div>

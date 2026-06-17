@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const API = "http://127.0.0.1:8000/api";
 
 async function request(endpoint: string, options?: RequestInit) {
@@ -25,9 +26,15 @@ async function request(endpoint: string, options?: RequestInit) {
 }
 
 function transactionPayload(payload: any) {
+  // Ambil tanggal lokal tanpa peduli UTC Greenwich
+  const localDate = new Date(payload.transactionDate);
+  const y = localDate.getFullYear();
+  const m = String(localDate.getMonth() + 1).padStart(2, "0");
+  const d = String(localDate.getDate()).padStart(2, "0");
+  
   return {
     ...payload,
-    transactionDate: new Date(payload.transactionDate).toISOString().slice(0, 10),
+    transactionDate: `${y}-${m}-${d}`, // Format murni YYYY-MM-DD lokal WIB
   };
 }
 
@@ -144,4 +151,20 @@ export const tradeApi = {
   update: (id: string, payload: any) =>
     request(`/finance/trades/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   remove: (id: string) => request(`/finance/trades/${id}`, { method: "DELETE" }),
+};
+
+// =========================
+// ANALYTICS ISOLATED PIPE
+// =========================
+export const analyticsApi = {
+  getRawData: (filters: { tahun: string; bulan: string; tanggal: string; account_id: string; contact_id: string }) => {
+    const q = new URLSearchParams();
+    q.set("tahun", filters.tahun);
+    q.set("bulan", filters.bulan);
+    if (filters.tanggal) q.set("tanggal", filters.tanggal);
+    q.set("account_id", filters.account_id);
+    q.set("contact_id", filters.contact_id);
+    
+    return request(`/finance/analytics-data?${q.toString()}`);
+  },
 };

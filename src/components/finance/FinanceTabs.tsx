@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Menu Import telah dihapus dari sini agar menu navigasi lebih ringkas
 const TABS: { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }[] = [
   { to: "/finance", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/finance/accounts", label: "Accounts", icon: Wallet },
