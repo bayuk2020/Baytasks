@@ -512,4 +512,52 @@ src/components/AppShell.tsx
 src/routes/library.tsx
 src/routes/book.$bookId.tsx
 
+
+src/
+├── components/
+│   └── goals/
+│       ├── GoalCard.tsx            (Komponen ringkasan target untuk Dashboard)
+│       ├── GoalProgressRing.tsx    (Visualisasi lingkaran progres 62% di kanan)
+│       ├── GoalTable.tsx           (Tabel daftar target aktif di halaman utama)
+│       ├── GoalFormModal.tsx       (Modal formulir tambah/ubah data target)
+│       ├── GoalHeader.tsx          (Header detail target: Judul, Area, Tipe, Status)
+│       ├── MilestoneTimeline.tsx   (Komponen alur horizontal milestone 1-5)
+│       ├── MilestoneCard.tsx       (Komponen detail tahapan)
+│       ├── MilestoneChecklist.tsx  (Daftar periksa sub-tugas pada milestone)
+│       ├── LinkedItems.tsx         (Panel kanan untuk menampilkan relasi Debt, Task, dll)
+│       ├── GoalAnalytics.tsx       (Grafik visualisasi tren pencapaian target)
+│       ├── GoalReviewForm.tsx      (Formulir evaluasi berkala mingguan/bulanan)
+│       └── GoalAIInsight.tsx       (Blok rekomendasi cerdas dari AI Coach)
+│
+├── lib/
+│   └── goals/
+│       ├── api.ts                  (Layanan integrasi Axios/Fetch ke backend Laravel)
+│       └── store.ts                (Zustand store untuk manajemen state global Goals)
+│
+└── routes/
+    ├── goals.tsx                   (Layout wrapper/parent route untuk modul Goals)
+    ├── goals.index.tsx             (Halaman utama Dashboard Goals /overview)
+    ├── goals.list.tsx              (Halaman tabel komprehensif semua target)
+    ├── goals.create.tsx            (Halaman khusus formulir pembuatan target)
+    ├── goals.$id.tsx               (Halaman detail target utama dengan tab internal)
+    ├── goals.$id.milestones.$milestoneId.tsx (Halaman detail spesifik satu tahapan)
+    ├── goals.quarterly.tsx         (Halaman perencanaan triwulanan Q1-Q4)
+    └── goals.reviews.tsx           (Halaman rekam jejak evaluasi berkala)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ^\s*$\n
+

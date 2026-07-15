@@ -6,6 +6,7 @@ import { Plus, Search, BookOpen, CheckCircle2, Layers, StickyNote, Flame } from 
 import { useStore, bookProgress, type BookStatus, BOOK_STATUS_META } from "@/lib/store";
 import { BookCard } from "@/components/library/BookCard";
 import { BookFormModal } from "@/components/library/BookFormModal";
+import GlowButton from "@/components/ui/GlowButton";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
@@ -170,10 +171,10 @@ const [
             Reading <span className="neon-text">Vault</span>
           </h1>
         </div>
-        <button onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--gradient-neon)] text-primary-foreground text-sm font-medium neon-ring hover:scale-[1.02] transition">
-          <Plus className="h-4 w-4" /> Add book
-        </button>
+        <GlowButton onClick={() => setAdding(true)}>
+          <Plus className="h-4 w-4" />
+          <span>Add book</span>
+        </GlowButton>
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative">

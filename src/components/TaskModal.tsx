@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
-import { attachmentApi, subtaskCreateApi } from "@/lib/api";
-
+import { attachmentApi, subtaskApi, subtaskCreateApi } from "@/lib/api";
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
 
 import { ColumnId, Priority, useStore, COLUMNS } from "@/lib/store";
@@ -231,6 +231,37 @@ export function TaskModal({
     }
   };
 
+// =========================
+  // DELETE SUBTASK
+  // =========================
+  const deleteSub = async (subtaskId: string) => {
+    if (!existing) return;
+    if (!confirm("Hapus subtask ini?")) return;
+
+    const targetTaskId = existing.id; 
+
+    try {
+      // Tembak langsung ke endpoint TaskController Laravel! 💥
+      await subtaskApi.remove(subtaskId); 
+
+      // UI update lokal biar langsung ilang tanpa reload halaman
+      useStore.setState({
+        tasks: useStore.getState().tasks.map((t) =>
+          t.id === targetTaskId
+            ? {
+                ...t,
+                subtasks: t.subtasks.filter((s) => s.id !== subtaskId),
+              }
+            : t
+        ),
+      });
+      toast.success("Subtask deleted successfully");
+    } catch (err) {
+      console.error("DELETE SUBTASK ERROR", err);
+      toast.error("Gagal menghapus subtask dari server");
+    }
+  };
+
   // =========================
   // ATTACHMENTS
   // =========================
@@ -373,34 +404,38 @@ export function TaskModal({
 
               {/* SUBTASK */}
 
+          {/* SUBTASK */}
               <Field label="Subtasks" icon={<Check className="h-3.5 w-3.5" />}>
-                {existing && (
-                  <ul className="space-y-1.5 mb-2">
-                    {existing.subtasks.map((s) => (
-                      <li key={s.id} className="flex items-center gap-2 group">
-                        <button
-                          onClick={() => toggleSubtask(existing.id, s.id)}
-                          className={`h-4 w-4 rounded border ${
-                            s.done ? "bg-primary border-primary" : "border-border"
-                          }`}
-                        >
-                          {s.done && <Check className="h-3 w-3 text-primary-foreground" />}
-                        </button>
+                {/* REVISI AMAN: Tambahkan optional chaining (?) sebelum .subtasks */}
+                {existing?.subtasks?.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between gap-2 group p-1 rounded-md hover:bg-secondary/40">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleSubtask(existing.id, s.id)}
+                        className={`h-4 w-4 rounded border ${
+                          s.done ? "bg-primary border-primary" : "border-border"
+                        }`}
+                      >
+                        {s.done && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </button>
 
-                        <span
-                          className={`text-sm ${
-                            s.done ? "line-through text-muted-foreground" : ""
-                          }`}
-                        >
-                          {s.title}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                      <span className={`text-sm ${s.done ? "line-through text-muted-foreground" : ""}`}>
+                        {s.title}
+                      </span>
+                    </div>
+
+                    {/* TOMBOL HAPUS SUBTASK */}
+                    <button
+                      onClick={() => deleteSub(s.id)}
+                      className="opacity-0 group-hover:opacity-100 h-6 w-6 grid place-items-center rounded text-muted-foreground hover:text-[var(--priority-urgent)] hover:bg-accent transition-all"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                ))}
 
                 {existing ? (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-2">
                     <input
                       value={newSub}
                       onChange={(e) => setNewSub(e.target.value)}
@@ -592,7 +627,7 @@ export function TaskModal({
 
             <button
               onClick={save}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--gradient-neon)] text-primary-foreground neon-ring hover:scale-[1.02] transition"
+              className="px-5 py-2.5 rounded-lg border border-sky-500/50 bg-sky-950/20 text-sky-400 text-xs font-bold shadow-[0_0_10px_rgba(14,165,233,0.15)] hover:bg-sky-500 hover:text-white transition-all duration-200 active:scale-95 cursor-pointer"
             >
               {existing ? "Save changes" : "Create task"}
             </button>

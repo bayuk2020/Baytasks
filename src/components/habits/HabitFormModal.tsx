@@ -615,25 +615,7 @@ export function HabitFormModal({ habit, onClose }: Props) {
 
             <button
               onClick={submit}
-              className="
-                rounded-lg
-
-                bg-[var(--gradient-neon)]
-
-                px-4
-                py-2
-
-                text-sm
-                font-medium
-
-                text-primary-foreground
-
-                transition
-
-                hover:scale-[1.02]
-
-                neon-ring
-              "
+className="px-5 py-2.5 rounded-lg border border-sky-500/50 bg-sky-950/20 text-sky-400 text-xs font-bold shadow-[0_0_10px_rgba(14,165,233,0.15)] hover:bg-sky-500 hover:text-white transition-all duration-200 active:scale-95 cursor-pointer"
             >
               {habit ? "Save" : "Create"}
             </button>

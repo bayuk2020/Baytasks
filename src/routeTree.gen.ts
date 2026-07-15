@@ -21,7 +21,11 @@ import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BoardRouteImport } from './routes/board'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GoalsIndexRouteImport } from './routes/goals.index'
 import { Route as FinanceIndexRouteImport } from './routes/finance.index'
+import { Route as GoalsListRouteImport } from './routes/goals.list'
+import { Route as GoalsCreateRouteImport } from './routes/goals.create'
+import { Route as GoalsIdRouteImport } from './routes/goals.$id'
 import { Route as FinanceTransactionsRouteImport } from './routes/finance.transactions'
 import { Route as FinanceTradingRouteImport } from './routes/finance.trading'
 import { Route as FinanceImportRouteImport } from './routes/finance.import'
@@ -92,10 +96,30 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GoalsIndexRoute = GoalsIndexRouteImport.update({
+  id: '/goals/',
+  path: '/goals/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FinanceIndexRoute = FinanceIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => FinanceRoute,
+} as any)
+const GoalsListRoute = GoalsListRouteImport.update({
+  id: '/goals/list',
+  path: '/goals/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalsCreateRoute = GoalsCreateRouteImport.update({
+  id: '/goals/create',
+  path: '/goals/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalsIdRoute = GoalsIdRouteImport.update({
+  id: '/goals/$id',
+  path: '/goals/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const FinanceTransactionsRoute = FinanceTransactionsRouteImport.update({
   id: '/transactions',
@@ -165,7 +189,11 @@ export interface FileRoutesByFullPath {
   '/finance/import': typeof FinanceImportRoute
   '/finance/trading': typeof FinanceTradingRoute
   '/finance/transactions': typeof FinanceTransactionsRoute
+  '/goals/$id': typeof GoalsIdRoute
+  '/goals/create': typeof GoalsCreateRoute
+  '/goals/list': typeof GoalsListRoute
   '/finance/': typeof FinanceIndexRoute
+  '/goals/': typeof GoalsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -188,7 +216,11 @@ export interface FileRoutesByTo {
   '/finance/import': typeof FinanceImportRoute
   '/finance/trading': typeof FinanceTradingRoute
   '/finance/transactions': typeof FinanceTransactionsRoute
+  '/goals/$id': typeof GoalsIdRoute
+  '/goals/create': typeof GoalsCreateRoute
+  '/goals/list': typeof GoalsListRoute
   '/finance': typeof FinanceIndexRoute
+  '/goals': typeof GoalsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -213,7 +245,11 @@ export interface FileRoutesById {
   '/finance/import': typeof FinanceImportRoute
   '/finance/trading': typeof FinanceTradingRoute
   '/finance/transactions': typeof FinanceTransactionsRoute
+  '/goals/$id': typeof GoalsIdRoute
+  '/goals/create': typeof GoalsCreateRoute
+  '/goals/list': typeof GoalsListRoute
   '/finance/': typeof FinanceIndexRoute
+  '/goals/': typeof GoalsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -239,7 +275,11 @@ export interface FileRouteTypes {
     | '/finance/import'
     | '/finance/trading'
     | '/finance/transactions'
+    | '/goals/$id'
+    | '/goals/create'
+    | '/goals/list'
     | '/finance/'
+    | '/goals/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -262,7 +302,11 @@ export interface FileRouteTypes {
     | '/finance/import'
     | '/finance/trading'
     | '/finance/transactions'
+    | '/goals/$id'
+    | '/goals/create'
+    | '/goals/list'
     | '/finance'
+    | '/goals'
   id:
     | '__root__'
     | '/'
@@ -286,7 +330,11 @@ export interface FileRouteTypes {
     | '/finance/import'
     | '/finance/trading'
     | '/finance/transactions'
+    | '/goals/$id'
+    | '/goals/create'
+    | '/goals/list'
     | '/finance/'
+    | '/goals/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -303,6 +351,10 @@ export interface RootRouteChildren {
   PomodoroRoute: typeof PomodoroRoute
   SettingsRoute: typeof SettingsRoute
   BookBookIdRoute: typeof BookBookIdRoute
+  GoalsIdRoute: typeof GoalsIdRoute
+  GoalsCreateRoute: typeof GoalsCreateRoute
+  GoalsListRoute: typeof GoalsListRoute
+  GoalsIndexRoute: typeof GoalsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -391,12 +443,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/goals/': {
+      id: '/goals/'
+      path: '/goals'
+      fullPath: '/goals/'
+      preLoaderRoute: typeof GoalsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/finance/': {
       id: '/finance/'
       path: '/'
       fullPath: '/finance/'
       preLoaderRoute: typeof FinanceIndexRouteImport
       parentRoute: typeof FinanceRoute
+    }
+    '/goals/list': {
+      id: '/goals/list'
+      path: '/goals/list'
+      fullPath: '/goals/list'
+      preLoaderRoute: typeof GoalsListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goals/create': {
+      id: '/goals/create'
+      path: '/goals/create'
+      fullPath: '/goals/create'
+      preLoaderRoute: typeof GoalsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goals/$id': {
+      id: '/goals/$id'
+      path: '/goals/$id'
+      fullPath: '/goals/$id'
+      preLoaderRoute: typeof GoalsIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/finance/transactions': {
       id: '/finance/transactions'
@@ -505,6 +585,10 @@ const rootRouteChildren: RootRouteChildren = {
   PomodoroRoute: PomodoroRoute,
   SettingsRoute: SettingsRoute,
   BookBookIdRoute: BookBookIdRoute,
+  GoalsIdRoute: GoalsIdRoute,
+  GoalsCreateRoute: GoalsCreateRoute,
+  GoalsListRoute: GoalsListRoute,
+  GoalsIndexRoute: GoalsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

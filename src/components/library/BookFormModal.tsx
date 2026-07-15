@@ -290,7 +290,7 @@ export function BookFormModal({
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--gradient-neon)] text-primary-foreground neon-ring hover:scale-[1.02] transition"
+                className="px-5 py-2.5 rounded-lg border border-sky-500/50 bg-sky-950/20 text-sky-400 text-xs font-bold shadow-[0_0_10px_rgba(14,165,233,0.15)] hover:bg-sky-500 hover:text-white transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 {edit ? "Save changes" : "Add book"}
               </button>

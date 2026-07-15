@@ -133,42 +133,30 @@ function Settings() {
         );
       }
     };
-
+// =========================
+  // TEST MESSAGE (FIXED) 🚀
   // =========================
-  // TEST MESSAGE
-  // =========================
+  const sendTest = async () => {
+    if (!telegram.chatId) {
+      toast.error("Chat ID kosong");
+      return;
+    }
 
-  const sendTest =
-    async () => {
+    try {
+      // Tembak API save dulu biar datanya sinkron ke Laravel, 
+      // lalu Laravel otomatis ngirim notif sambutan (berdasarkan logic controller kita tadi)
+      await telegramApi.save({
+        chat_id: telegram.chatId,
+        enabled: true, // Paksa true pas ngetes
+        daily_briefing: telegram.dailyBriefing,
+      });
 
-      try {
-
-        const data =
-          await telegramApi.get();
-
-        if (
-          !data.setting
-            ?.chat_id
-        ) {
-
-          toast.error(
-            "Chat ID kosong"
-          );
-
-          return;
-        }
-
-        toast.success(
-          "Telegram connected 😭🔥"
-        );
-
-      } catch {
-
-        toast.error(
-          "Telegram failed"
-        );
-      }
-    };
+      toast.success("Telegram connected 😭🔥");
+    } catch (err) {
+      console.error(err);
+      toast.error("Telegram failed");
+    }
+  };
 // =========================
 // UPDATE BOARD
 // =========================

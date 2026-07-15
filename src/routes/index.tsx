@@ -56,15 +56,16 @@ function Dashboard() {
   const today = todayKey();
   const board = boards.find((b) => b.id === activeBoardId);
   const myTasks = tasks.filter((t) => t.boardId === activeBoardId);
-const loadBooks = useStore(
-  (s) => s.loadBooks
-);
+  const { loadBooks, loadTasks, loadHabits, loadBoards } = useStore.getState();
+
 
 useEffect(() => {
-
-  loadBooks();
-
-}, []);
+    // 3. Panggil semua loader sekaligus saat komponen mount
+    loadBooks();
+    loadTasks();
+    loadHabits();
+    loadBoards();
+  }, []);
   const stats = useMemo(() => {
     const done = myTasks.filter((t) => t.column === "done").length;
     const inProg = myTasks.filter((t) => t.column === "in_progress").length;

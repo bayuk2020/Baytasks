@@ -10,6 +10,7 @@ import { StatsWidgets } from "@/components/habits/StatsWidgets";
 import { HabitCard } from "@/components/habits/HabitCard";
 import { HabitFormModal } from "@/components/habits/HabitFormModal";
 import { Heatmap } from "@/components/habits/Heatmap";
+import { habitApi } from "@/lib/api"; // <-- PASTIKAN lu import instance API/Axios lu di sini kawan!
 
 export const Route = createFileRoute("/habits")({
   head: () => ({
@@ -26,15 +27,47 @@ export const Route = createFileRoute("/habits")({
 
 function HabitsPage() {
   const store = useStore();
-
-const habits = store?.habits ?? [];
-const loadHabits = store?.loadHabits;
+  
+  // STATE LOKAL BIAR RE-RENDER DIPAKSA JALAN 100% KAWAN
+  const [localHabits, setLocalHabits] = useState<Habit[]>([]);
+  const loadHabits = store?.loadHabits;
   const [editing, setEditing] = useState<Habit | null | undefined>(undefined);
   const [showArchived, setShowArchived] = useState(false);
+
+  // =========================================================
+  // FIX BYPASS BARBAR: POLLING SINKRONISASI VIA API LANGSUNG
+  // =========================================================
   useEffect(() => {
-    loadHabits();
+    const fetchFreshData = async () => {
+      try {
+        // 1. Panggil loadHabits store biar state global sync
+        if (typeof loadHabits === "function") await loadHabits();
+        
+        // 2. Jika project lu pake file api axios, tembak langsung endpoint-nya kawan!
+        // Contoh kalau pake instance api/axios:
+        // const res = await habitApi.getAll(); 
+        
+        // ATAU kalau gak mau ribet, paksa ambil state habits paling fresh dari Zustand jero store:
+        const freshHabits = useStore.getState().habits;
+        setLocalHabits(freshHabits ?? []);
+      } catch (err) {
+        console.error("Gagal sinkronisasi data habit:", err);
+      }
+    };
+
+    // Eksekusi pas pertama kali dibuka
+    fetchFreshData();
+
+    // Setel interval paksa re-fetch tiap 5 detik
+    const interval = setInterval(() => {
+      fetchFreshData();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [loadHabits]);
-  const visible = (habits ?? []).filter((h) => (showArchived ? h.archived : !h.archived));
+
+  // Gunakan localHabits hasil bypass paksa kita tadi kawan!
+  const visible = (localHabits ?? []).filter((h) => (showArchived ? h.archived : !h.archived));
 
   return (
     <div className="space-y-6">
@@ -52,13 +85,10 @@ const loadHabits = store?.loadHabits;
           >
             <Archive className="h-4 w-4" /> {showArchived ? "Active" : "Archived"}
           </button>
-            <GlowButton
-            onClick={() => setEditing(null)}
-            >
+          <GlowButton onClick={() => setEditing(null)}>
             <Plus className="h-4 w-4" />
-
             <span>New Habit</span>
-            </GlowButton>
+          </GlowButton>
         </div>
       </header>
 
@@ -98,17 +128,9 @@ const loadHabits = store?.loadHabits;
           </div>
         ) : (
           <motion.div
-  layout
-  className="
-    grid
-    sm:grid-cols-2
-    xl:grid-cols-3
-    gap-3
-
-    relative
-    z-0
-  "
->
+            layout
+            className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3 relative z-0"
+          >
             <AnimatePresence>
               {visible.map((h) => (
                 <HabitCard key={h.id} habit={h} onEdit={(habit) => setEditing(habit)} />
@@ -117,9 +139,9 @@ const loadHabits = store?.loadHabits;
           </motion.div>
         )}
       </section>
-    <div className="mt-20">
-      <Heatmap />
-    </div>
+      <div className="mt-20">
+        <Heatmap />
+      </div>
       <AnimatePresence>
         {editing !== undefined && (
           <HabitFormModal habit={editing ?? undefined} onClose={() => setEditing(undefined)} />

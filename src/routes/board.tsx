@@ -1,20 +1,12 @@
 /* eslint-disable prettier/prettier */
 import { createFileRoute } from "@tanstack/react-router";
-
 import { KanbanBoard } from "@/components/KanbanBoard";
-
 import { useStore } from "@/lib/store";
-
 import { useSearch } from "@/components/AppShell";
-
 import { Plus, Sparkles } from "lucide-react";
-
 import { motion } from "framer-motion";
-
-import { useState } from "react";
-
+import { useState, useEffect } from "react";
 import { TaskModal } from "@/components/TaskModal";
-
 import GlowButton from "@/components/ui/GlowButton";
 
 export const Route = createFileRoute("/board")({
@@ -30,13 +22,34 @@ export const Route = createFileRoute("/board")({
 });
 
 function BoardPage() {
-  const { boards, activeBoardId } = useStore();
+  // 🔑 FIX: Panggil loadBoards dan loadTasks sekaligus dari Zustand store lu!
+  const { boards, activeBoardId, loadBoards, loadTasks } = useStore();
 
   const board = boards.find((b) => b.id === activeBoardId);
-
   const { q } = useSearch();
-
   const [creating, setCreating] = useState(false);
+
+  // =========================================================
+  // LOGIC AUTO REFRESH (POLLING) SERENTAK TIAP 5 DETIK
+  // =========================================================
+  useEffect(() => {
+    // Fungsi pembantu untuk reload semua data dari MySQL
+    const syncDataFromDatabase = () => {
+      if (typeof loadBoards === "function") loadBoards();
+      if (typeof loadTasks === "function") loadTasks();
+    };
+
+    // Load pertama kali saat halaman dibuka
+    syncDataFromDatabase();
+
+    // Setel interval biar web auto-update tiap 5 detik tanpa F5
+    const interval = setInterval(() => {
+      syncDataFromDatabase();
+    }, 5000);
+
+    // Bersihkan interval pas user pindah halaman biar laptop kenceng terus
+    return () => clearInterval(interval);
+  }, [activeBoardId, loadBoards, loadTasks]);
 
   return (
     <div className="space-y-6">
@@ -58,21 +71,15 @@ function BoardPage() {
         }}
         className="
           relative
-
           overflow-hidden
-
           rounded-3xl
-
           border
           border-cyan-500/10
-
           bg-gradient-to-br
           from-cyan-500/[0.03]
           via-background
           to-blue-500/[0.03]
-
           p-6
-
           shadow-[0_0_50px_rgba(34,211,238,0.06)]
         "
       >
@@ -81,9 +88,7 @@ function BoardPage() {
           className="
             absolute
             inset-0
-
             bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.08),transparent_35%)]
-
             pointer-events-none
           "
         />
@@ -102,18 +107,13 @@ function BoardPage() {
               className="
                 h-14
                 w-14
-
                 rounded-2xl
-
                 border
                 border-cyan-400/20
-
                 bg-cyan-400/5
-
                 flex
                 items-center
                 justify-center
-
                 shadow-[0_0_30px_rgba(34,211,238,0.15)]
               "
             >
@@ -127,12 +127,10 @@ function BoardPage() {
                     text-3xl
                     font-bold
                     tracking-tight
-
                     bg-gradient-to-r
                     from-cyan-100
                     via-cyan-300
                     to-blue-400
-
                     bg-clip-text
                     text-transparent
                   "
@@ -153,7 +151,6 @@ function BoardPage() {
                 className="
                   text-sm
                   text-muted-foreground
-
                   mt-1
                 "
               >
@@ -165,7 +162,6 @@ function BoardPage() {
           {/* RIGHT */}
           <GlowButton onClick={() => setCreating(true)}>
             <Plus className="h-4 w-4" />
-
             <span>New Task</span>
           </GlowButton>
         </div>
