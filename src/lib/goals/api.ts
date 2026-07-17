@@ -1,6 +1,6 @@
 import { Goal, Milestone } from "./store";
 
-const BASE_URL = "http://localhost:8000/api";
+const BASE_URL = "https://api.kabyra.my.id/api";
 
 export const goalsApi = {
   // Ambil semua data goals [cite: 167]
