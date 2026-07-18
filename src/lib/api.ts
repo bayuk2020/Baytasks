@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-const API = "http://127.0.0.1:8000/api";
+const API = "https://api.kabyra.my.id/api";
 
 async function request(endpoint: string, options?: RequestInit) {
   const res = await fetch(`${API}${endpoint}`, {
