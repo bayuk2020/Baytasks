@@ -237,6 +237,7 @@ export interface Habit {
   frequency: "daily" | "weekly";
   target: number;
   xp_per_completion: number;
+  reminder_time?: string;
   archived: boolean;
   createdAt: number;
   logs: HabitLog[];
@@ -537,7 +538,7 @@ export const useStore = create<State>()((set, get) => ({
     }
   },
 
-  loadHabits: async () => {
+loadHabits: async () => {
     try {
       const data = await habitApi.getAll();
       const habits = data.map((h: any) => ({
@@ -549,6 +550,7 @@ export const useStore = create<State>()((set, get) => ({
         frequency: h.frequency ?? "daily",
         target: h.target ?? 1,
         xp_per_completion: h.xp_per_completion !== undefined ? Number(h.xp_per_completion) : 25, 
+        reminder_time: h.reminder_time ?? "", // <-- Masukkan baris mapping ini
         archived: !!h.archived,
         createdAt: Date.now(),
         logs: (h.logs ?? []).map((log: any) => ({
