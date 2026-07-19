@@ -35,10 +35,14 @@ export function HabitFormModal({ habit, onClose }: Props) {
   const [xp, setXp] = useState(habit?.xp_per_completion ?? 25);
   const [target, setTarget] = useState(habit?.target ?? 1);
   
-  // 1. Tambahkan state baru untuk menampung data jam reminder
-  // Memotong format jam jika database mengembalikan format "HH:MM:SS" -> diambil "HH:MM"
+  // State Reminder Time
   const [reminderTime, setReminderTime] = useState(
     habit?.reminder_time ? habit.reminder_time.substring(0, 5) : ""
+  );
+
+  // 1. Tambahkan state baru untuk menampung data jam batas akhir pengerjaan (due_time)
+  const [dueTime, setDueTime] = useState(
+    habit?.due_time ? habit.due_time.substring(0, 5) : ""
   );
 
   // =========================
@@ -66,7 +70,8 @@ export function HabitFormModal({ habit, onClose }: Props) {
       frequency,
       target,
       xp_per_completion: xp,
-      reminder_time: reminderTime || null, // 2. Masukkan ke payload kiriman store
+      reminder_time: reminderTime || null,
+      due_time: dueTime || null, // 2. Masukkan due_time ke payload kiriman store kawan
     };
 
     if (habit) {
@@ -199,10 +204,10 @@ export function HabitFormModal({ habit, onClose }: Props) {
               </div>
             </div>
 
-            {/* GRID 2: TARGET & REMINDER TIME */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* 3. MODIFIKASI GRID 2: MENJADI 3 KOLOM SEJAJAR (TARGET, REMINDER, & DUE TIME) */}
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Daily Target</label>
+                <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Target</label>
                 <input
                   type="number"
                   min={1}
@@ -213,13 +218,22 @@ export function HabitFormModal({ habit, onClose }: Props) {
                 />
               </div>
 
-              {/* 3. INPUT BARU UNTUK REMINDER TIME */}
               <div>
                 <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Reminder Time</label>
                 <input
                   type="time"
                   value={reminderTime}
                   onChange={(e) => setReminderTime(e.target.value)}
+                  className="mt-1.5 w-full rounded-lg bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Due Time</label>
+                <input
+                  type="time"
+                  value={dueTime}
+                  onChange={(e) => setDueTime(e.target.value)}
                   className="mt-1.5 w-full rounded-lg bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>

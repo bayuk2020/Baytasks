@@ -157,10 +157,30 @@ export function HabitCard({ habit, onEdit }: Props) {
               </span>
             )}
           </div>
-          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
             <span className="capitalize">{habit.frequency}</span>
             <span>·</span>
             <span>+{habit.xp_per_completion} XP</span>
+            
+            {/* Inject Informasi Jam Aktif Pengingat jika data tersedia */}
+            {habit.reminder_time && (
+              <>
+                <span>·</span>
+                <span className="inline-flex items-center text-[11px] bg-secondary/60 px-1.5 py-0.5 rounded text-muted-foreground">
+                  🔔 {habit.reminder_time.substring(0, 5)}
+                </span>
+              </>
+            )}
+
+            {/* Inject Informasi Batas Waktu pengerjaan jika data tersedia */}
+            {habit.due_time && (
+              <>
+                <span>·</span>
+                <span className="inline-flex items-center text-[11px] bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded text-red-400">
+                  🚨 Max {habit.due_time.substring(0, 5)}
+                </span>
+              </>
+            )}
           </div>
         </div>
 

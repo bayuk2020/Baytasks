@@ -5,7 +5,6 @@ import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 
 type ViewMode = "month" | "year";
 
-// Mapping warna OKLCH asli biar sinergi sama HabitCard lu, su! 🎨
 const COLOR_VAR: Record<string, string> = {
   cyan: "oklch(0.78 0.18 200)",
   violet: "oklch(0.72 0.18 295)",
@@ -46,7 +45,7 @@ export function Heatmap() {
   };
 
   const dateRange = useMemo(() => {
-    const arr: { date: string; label: string; dayName: string }[] = [];
+    const arr: { date: string; label: string; dayName: string; rawDate: Date }[] = [];
     const year = currentFocus.getFullYear();
     const month = currentFocus.getMonth();
 
@@ -74,7 +73,8 @@ export function Heatmap() {
       arr.push({
         date: dKey,
         label: labelStr,
-        dayName: dayNameStr
+        dayName: dayNameStr,
+        rawDate: new Date(tempDate)
       });
       
       tempDate.setDate(tempDate.getDate() + 1);
@@ -90,12 +90,11 @@ export function Heatmap() {
     return `Tahun ${currentFocus.getFullYear()}`;
   }, [currentFocus, viewMode]);
 
-  // 🔑 LOGIC FIX ANTI BOLONG KOTAK HARI INI
-  const getDotStyle = (isDone: boolean, isToday: boolean, habitColorName: string) => {
+  // 🔑 FIX LOGIC MULTI-COLOR DOT HEATMAP BERDASARKAN EVALUASI WAKTU
+  const getDotStyle = (isDone: boolean, isFailed: boolean, isToday: boolean, isFuture: boolean, habitColorName: string) => {
     const accentColor = COLOR_VAR[habitColorName] ?? COLOR_VAR.cyan;
 
-if (isDone) {
-      // Kondisi SUKSES: Baru boleh menyala solid warna kustom! 🔥
+    if (isDone) {
       return {
         background: accentColor,
         borderColor: `color-mix(in oklab, ${accentColor} 50%, transparent)`,
@@ -103,16 +102,32 @@ if (isDone) {
       };
     }
 
-if (isToday) {
-      // Kondisi HARI INI BELUM DICENTANG: Warnanya sama abu-abu kayak kotak lain,
-      // tapi bordernya putih agak terang dikit (border-white/20) biar penandanya tetep kelihatan rapi!
+    if (isFailed) {
+      // Kotak Merah Lembut Transparan khusus Misi Gagal/Terlewat
       return {
-        background: "color-mix(in oklab, var(--foreground) 6%, transparent)",
+        background: "rgba(239, 68, 68, 0.2)",
+        borderColor: "rgba(239, 68, 68, 0.4)",
       };
     }
 
-    // Kondisi kosong/bolong hari-hari biasa: Abu-abu redup bawaan glassmorphism lu
-return {
+    if (isToday) {
+      // Hari H sedang berjalan
+      return {
+        background: "color-mix(in oklab, var(--foreground) 12%, transparent)",
+        borderColor: `color-mix(in oklab, ${accentColor} 40%, transparent)`
+      };
+    }
+
+    if (isFuture) {
+      // Masa Depan: Sangat redup transparan
+      return {
+        background: "color-mix(in oklab, var(--foreground) 2%, transparent)",
+        borderColor: "color-mix(in oklab, var(--foreground) 2%, transparent)"
+      };
+    }
+
+    // Default bolong masa lalu biasa (user gak bikin schedule / skip tanpa record)
+    return {
       background: "color-mix(in oklab, var(--foreground) 6%, transparent)",
       borderColor: "color-mix(in oklab, var(--foreground) 3%, transparent)"
     };
@@ -187,7 +202,7 @@ return {
         <div className="space-y-4 overflow-x-auto pb-2">
           {activeHabits.map((h) => {
             const completedInGrid = dateRange.filter((d) =>
-              habitLogs.some((l) => Number(l.habitId) === Number(h.id) && l.date === d.date)
+              habitLogs.some((l) => Number(l.habitId) === Number(h.id) && l.date === d.date && l.completed)
             ).length;
 
             const ratePct = dateRange.length > 0 ? Math.round((completedInGrid / dateRange.length) * 100) : 0;
@@ -210,16 +225,52 @@ return {
                 {/* TRACKING DOTS MENDATAR */}
                 <div className="flex-1 flex flex-wrap gap-1.5 items-center">
                   {dateRange.map((d) => {
-                    const isDone = habitLogs.some(
+                    const todayStr = todayKey();
+                    const log = habitLogs.find(
                       (l) => Number(l.habitId) === Number(h.id) && l.date === d.date
                     );
-                    const isToday = d.date === todayKey();
+
+                    const isDone = !!(log && log.completed);
+                    
+                    // Deteksi Gagal: log dari backend menyatakan completed = false OR (lewat hari & tak dicentang)
+                    const isPastDay = d.date < todayStr;
+                    const isToday = d.date === todayStr;
+                    const isFuture = d.date > todayStr;
+
+                    // Pengecekan Batas Jam Kerja Hari Ini
+                    let isTimeOver = false;
+                    if (isToday && h.due_time) {
+                      const [dueH, dueM] = h.due_time.split(":").map(Number);
+                      const now = new Date();
+                      const dueDateTime = new Date();
+                      dueDateTime.setHours(dueH, dueM, 0, 0);
+                      isTimeOver = now > dueDateTime;
+                    }
+
+                    const isFailed = !!(!isDone && (log?.completed === false || isPastDay || (isToday && isTimeOver)));
+
+                    // Modifikasi Teks dan Detail Tooltip Berdasarkan Aturan Main Baru
+                    let statusText = "❌ Belum Dicentang";
+                    let notesText = log?.notes || "";
+
+                    if (isDone) {
+                      statusText = "✅ Misi Selesai";
+                    } else if (isFuture) {
+                      statusText = "✨ Semoga Konsisten";
+                    } else if (isFailed) {
+                      // Ambil total tunda dari isi text notes laravel jika ada
+                      const matchNotes = log?.notes && log.notes.includes("menunda") ? log.notes : "Habit terlewat kawan.";
+                      statusText = `❌ Gagal, ${matchNotes}`;
+                    } else if (isToday && !isTimeOver) {
+                      statusText = "⏳ Belum Dicentang (Sedang Berjalan)";
+                      notesText = log?.notes || "Menunggu eksekusi ritual.";
+                    }
 
                     return (
                       <div key={d.date} className="relative group/dot">
                         <div
                           className="h-3.5 w-3.5 rounded-[3px] border transition-all duration-200 cursor-help hover:scale-125"
-                          style={getDotStyle(isDone, isToday, h.color)}
+                          style={getDotStyle(isDone, isFailed, isToday, isFuture, h.color)}
                         />
 
                         {/* SMART TOOLTIP NATIVE */}
@@ -228,11 +279,15 @@ return {
                             <div className="font-semibold text-foreground">
                               {d.dayName}, {d.label} {isToday && <span className="text-cyan-400 font-normal text-[10px] ml-1">(Hari Ini)</span>}
                             </div>
-                            <div className="flex items-center justify-center gap-1">
-                              <span>{h.emoji}</span>
-                              <span className={isDone ? "text-emerald-400 font-medium" : "text-muted-foreground"}>
-                                {isDone ? "✅ Misi Selesai" : "❌ Belum Dicentang"}
+                            <div className="flex flex-col items-center justify-center">
+                              <span className={isDone ? "text-emerald-400 font-medium" : isFailed ? "text-red-400 font-medium" : "text-muted-foreground"}>
+                                {statusText}
                               </span>
+                              {notesText && !isFuture && (
+                                <span className="text-[10px] text-muted-foreground/80 mt-0.5 block italic border-t border-border/30 pt-0.5">
+                                  📌 {notesText}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div className="w-2 h-2 bg-popover border-r border-b border-border rotate-45 mx-auto -mt-1" />
@@ -256,11 +311,11 @@ return {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
             <span className="h-2.5 w-2.5 rounded-sm bg-white/5 border border-white/10" />
-            <span>Belum lewat</span>
+            <span>Masa Depan</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-sm bg-cyan-500/10 border border-cyan-500/50" />
-            <span>Target hari ini</span>
+            <span className="h-2.5 w-2.5 rounded-sm bg-red-500/20 border border-red-500/40" />
+            <span>Habit Gagal</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]" />

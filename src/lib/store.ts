@@ -227,6 +227,7 @@ export interface HabitLog {
   date: string;
   completed: boolean;
   completedAt?: number;
+  notes?: string;
 }
 export interface Habit {
   id: string;
@@ -238,6 +239,7 @@ export interface Habit {
   target: number;
   xp_per_completion: number;
   reminder_time?: string;
+  due_time?: string;
   archived: boolean;
   createdAt: number;
   logs: HabitLog[];
@@ -550,7 +552,8 @@ loadHabits: async () => {
         frequency: h.frequency ?? "daily",
         target: h.target ?? 1,
         xp_per_completion: h.xp_per_completion !== undefined ? Number(h.xp_per_completion) : 25, 
-        reminder_time: h.reminder_time ?? "", // <-- Masukkan baris mapping ini
+        reminder_time: h.reminder_time ?? "", 
+        due_time: h.due_time ?? "", // <-- Inject mapping data due_time dari MySQL ke frontend
         archived: !!h.archived,
         createdAt: Date.now(),
         logs: (h.logs ?? []).map((log: any) => ({
@@ -558,6 +561,7 @@ loadHabits: async () => {
           date: String(log.date).slice(0, 10),
           completed: !!log.completed,
           completedAt: log.completed_at ? new Date(log.completed_at).getTime() : undefined,
+          notes: log.notes ?? "", // <-- Ambil data isi catatan alasan/durasi tunda ke level logs
         })),
       }));
       const habitLogs = habits.flatMap((h: any) => (h.logs ?? []).map((log: any) => ({ ...log, habitId: h.id })));
