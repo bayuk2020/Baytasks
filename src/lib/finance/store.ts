@@ -8,6 +8,7 @@ import {
   budgetApi,
   debtApi,
   tradeApi,
+  categoryApi,
 } from "@/lib/finance/api";
 
 /* ---------------- Tipe Data ---------------- */
@@ -122,6 +123,7 @@ interface FinanceState {
   loadTransactions: (page?: number) => Promise<void>;
   loadIncomeSources: () => Promise<void>;
   loadContacts: () => Promise<void>;
+  loadCategories: () => Promise<void>;
   loadAll: () => Promise<void>;
   allTransactions: Transaction[];
 
@@ -197,6 +199,32 @@ function normalizeTransactions(items: any[]): Transaction[] {
   }));
 }
 
+// TransactionController::index() sekarang paginate(50) di backend. Banyak fitur (filter
+// & search transaksi, rekap total, export Excel, statistik Overview, "spent" di Budget)
+// masih butuh SELURUH riwayat transaksi di client, jadi di sini kita tarik semua halaman
+// lalu digabung — request per halaman jadi kecil & murah, tapi fitur lama tetap utuh.
+async function fetchAllTransactionPages(): Promise<{ items: any[]; meta?: { current_page: number; last_page: number } }> {
+  const first = await transactionApi.getAll(1);
+  if (Array.isArray(first)) {
+    // Fallback kalau backend suatu saat balik lagi mengembalikan array polos.
+    return { items: first, meta: undefined };
+  }
+
+  const items: any[] = [...(first.data || [])];
+  const lastPage: number = first.last_page || 1;
+
+  if (lastPage > 1) {
+    const restPages = await Promise.all(
+      Array.from({ length: lastPage - 1 }, (_, i) => transactionApi.getAll(i + 2))
+    );
+    for (const page of restPages) {
+      items.push(...(Array.isArray(page) ? page : (page.data || [])));
+    }
+  }
+
+  return { items, meta: { current_page: first.current_page ?? 1, last_page: lastPage } };
+}
+
 export const useFinanceStore = create<FinanceState>((set) => ({
   accounts: [],
   accountMap: {},
@@ -210,9 +238,11 @@ export const useFinanceStore = create<FinanceState>((set) => ({
   debtPayments: [],
   trades: [],
   transactionMeta: undefined,
-  categories: { 
-    income: ["Salary", "Bonus", "Freelance", "Investment", "Refund", "Other"], 
-    expense: ["Food", "Transport", "Bills", "Shopping", "Health", "Entertainment", "Education", "Subscriptions", "Other"] 
+  // Fallback statis dipakai sebelum loadCategories()/loadAll() selesai — begitu API
+  // membalas, nilai ini ditimpa oleh isi tabel finance_categories yang sebenarnya.
+  categories: {
+    income: ["Salary", "Bonus", "Freelance", "Investment", "Refund", "Other"],
+    expense: ["Food", "Transport", "Bills", "Shopping", "Health", "Entertainment", "Education", "Subscriptions", "Other"]
   },
 
   loadAccounts: async () => {
@@ -220,14 +250,13 @@ export const useFinanceStore = create<FinanceState>((set) => ({
     set({ accounts: data, accountMap: Object.fromEntries(data.map((a: Account) => [a.id, a])) });
   },
 
-loadTransactions: async (page = 1) => {
-    const res = await transactionApi.getAll();
-    const items = Array.isArray(res) ? res : (res.data || []);
-    
-    // Langsung set tanpa mikirin meta page dari backend lagi
-    set({ 
-      transactions: normalizeTransactions(items),
-      allTransactions: normalizeTransactions(items)
+  loadTransactions: async () => {
+    const { items, meta } = await fetchAllTransactionPages();
+    const normalized = normalizeTransactions(items);
+    set({
+      transactions: normalized,
+      allTransactions: normalized,
+      transactionMeta: meta,
     });
   },
 
@@ -238,13 +267,11 @@ loadTransactions: async (page = 1) => {
 
   loadAccountsAndAllTransactions: async () => {
     // Helper internal untuk refresh massal data transaksi & akun
-    const [transactionsRes, accountsRes] = await Promise.all([
-      transactionApi.getAll(), // Ini memanggil data total / ter-filter
+    const [{ items, meta }, accountsRes] = await Promise.all([
+      fetchAllTransactionPages(),
       accountApi.getAll(),
     ]);
-    const items = Array.isArray(transactionsRes) ? transactionsRes : (transactionsRes.data || []);
-    const meta = Array.isArray(transactionsRes) ? undefined : { current_page: transactionsRes.current_page, last_page: transactionsRes.last_page };
-    
+
     const normalized = normalizeTransactions(items);
     set({
       transactions: normalized,
@@ -261,32 +288,45 @@ loadTransactions: async (page = 1) => {
     set({ contacts: data, contactMap: Object.fromEntries(data.map((c: Contact) => [c.id, c])) });
   },
 
+  loadCategories: async () => {
+    const data = await categoryApi.getAll();
+    const income = data.filter((c: any) => c.type === "income").map((c: any) => c.name);
+    const expense = data.filter((c: any) => c.type === "expense").map((c: any) => c.name);
+    set({ categories: { income, expense } });
+  },
+
   loadAll: async () => {
-    const [accounts, transactionsRes, incomeSources, contacts, budgets, debts, trades] = await Promise.all([
+    const [accounts, { items, meta }, incomeSources, contacts, budgets, debts, trades, categoriesRes] = await Promise.all([
       accountApi.getAll(),
-      transactionApi.getAll(), 
+      fetchAllTransactionPages(),
       incomeSourceApi.getAll(),
       contactApi.getAll(),
       budgetApi.getAll(),
       debtApi.getAll(),
       tradeApi.getAll(),
+      categoryApi.getAll(),
     ]);
 
-    const items = Array.isArray(transactionsRes) ? transactionsRes : (transactionsRes.data || []);
     const contactData = Array.isArray(contacts) ? contacts : (contacts.data || []);
     const normalizedTx = normalizeTransactions(items);
+    const categoriesData: any[] = categoriesRes || [];
 
     set({
       accounts,
       accountMap: Object.fromEntries(accounts.map((a: Account) => [a.id, a])),
-      transactions: normalizedTx, 
+      transactions: normalizedTx,
       allTransactions: normalizedTx, // KUNCI UTAMA ANALYTICS AMAN
+      transactionMeta: meta,
       incomeSources,
       contacts: contactData,
       contactMap: Object.fromEntries(contactData.map((c: Contact) => [c.id, c])),
       budgets: budgets || [],
       debts: debts || [],
       trades: trades || [],
+      categories: {
+        income: categoriesData.filter((c) => c.type === "income").map((c) => c.name),
+        expense: categoriesData.filter((c) => c.type === "expense").map((c) => c.name),
+      },
     });
   },
 
@@ -322,16 +362,14 @@ loadTransactions: async (page = 1) => {
   addTransaction: async (payload) => {
     await transactionApi.create(payload);
     // Refresh massal agar balance akun ikut ter-update instan
-    const [transactionsRes, accountsRes] = await Promise.all([
-      transactionApi.getAll(),
+    const [{ items, meta }, accountsRes] = await Promise.all([
+      fetchAllTransactionPages(),
       accountApi.getAll(),
     ]);
-    const items = Array.isArray(transactionsRes) ? transactionsRes : (transactionsRes.data || []);
-    const meta = Array.isArray(transactionsRes) ? undefined : { current_page: transactionsRes.current_page, last_page: transactionsRes.last_page };
     const normalized = normalizeTransactions(items);
 
-    set({ 
-      transactions: normalized, 
+    set({
+      transactions: normalized,
       allTransactions: normalized, // REAKTIF KE GRAFIK ANALISIS
       transactionMeta: meta,
       accounts: accountsRes,
@@ -341,16 +379,14 @@ loadTransactions: async (page = 1) => {
 
   updateTransaction: async (id, payload) => {
     await transactionApi.update(id, payload);
-    const [transactionsRes, accountsRes] = await Promise.all([
-      transactionApi.getAll(),
+    const [{ items, meta }, accountsRes] = await Promise.all([
+      fetchAllTransactionPages(),
       accountApi.getAll(),
     ]);
-    const items = Array.isArray(transactionsRes) ? transactionsRes : (transactionsRes.data || []);
-    const meta = Array.isArray(transactionsRes) ? undefined : { current_page: transactionsRes.current_page, last_page: transactionsRes.last_page };
     const normalized = normalizeTransactions(items);
 
-    set({ 
-      transactions: normalized, 
+    set({
+      transactions: normalized,
       allTransactions: normalized, // REAKTIF KE GRAFIK ANALISIS
       transactionMeta: meta,
       accounts: accountsRes,
@@ -360,16 +396,14 @@ loadTransactions: async (page = 1) => {
 
   removeTransaction: async (id) => {
     await transactionApi.remove(id);
-    const [transactionsRes, accountsRes] = await Promise.all([
-      transactionApi.getAll(),
+    const [{ items, meta }, accountsRes] = await Promise.all([
+      fetchAllTransactionPages(),
       accountApi.getAll(),
     ]);
-    const items = Array.isArray(transactionsRes) ? transactionsRes : (transactionsRes.data || []);
-    const meta = Array.isArray(transactionsRes) ? undefined : { current_page: transactionsRes.current_page, last_page: transactionsRes.last_page };
     const normalized = normalizeTransactions(items);
 
-    set({ 
-      transactions: normalized, 
+    set({
+      transactions: normalized,
       allTransactions: normalized, // REAKTIF KE GRAFIK ANALISIS
       transactionMeta: meta,
       accounts: accountsRes,
@@ -440,43 +474,57 @@ loadTransactions: async (page = 1) => {
     set((s) => ({ budgets: s.budgets.filter((b) => b.id !== id) }));
   },
 
-  /* ---- debts ---- */
-  addDebt: async (p) => set((s) => ({ debts: [...s.debts, { ...p, id: uid(), remainingDebt: p.remainingDebt ?? p.totalDebt, status: "active", createdAt: now(), updatedAt: now() }] })),
-  updateDebt: async (id, p) => set((s) => ({ debts: s.debts.map((d) => (d.id === id ? { ...d, ...p, updatedAt: now() } : d)) })),
-  removeDebt: async (id) => set((s) => ({ debts: s.debts.filter((d) => d.id !== id), debtPayments: s.debtPayments.filter((p) => p.debtId !== id) })),
-  addDebtPayment: async (p) => {
-    const payment: DebtPayment = { ...p, id: uid() };
-    set((s) => {
-      const debts = s.debts.map((d) => {
-        if (d.id !== p.debtId) return d;
-        const remaining = Math.max(0, d.remainingDebt - p.amount);
-        return { ...d, remainingDebt: remaining, status: remaining === 0 ? ("paid" as DebtStatus) : d.status, updatedAt: now() };
-      });
-      let accounts = s.accounts;
-      let transactions = s.transactions;
-      let allTransactions = s.allTransactions;
-      if (p.accountId) {
-        const tx: Transaction = { id: uid(), accountId: p.accountId, type: "expense", category: "Debt Payment", amount: p.amount, description: p.notes ?? `Debt payment`, transactionDate: p.paidAt, createdAt: now(), updatedAt: now() };
-        transactions = [...s.transactions, tx];
-        allTransactions = [...s.allTransactions, tx];
-        accounts = s.accounts.map((a) => a.id === p.accountId ? { ...a, balance: a.balance - p.amount, updatedAt: now() } : a);
-      }
-      return { debts, debtPayments: [...s.debtPayments, payment], transactions, allTransactions, accounts, accountMap: Object.fromEntries(accounts.map((a: Account) => [a.id, a])) };
-    });
+  /* ---- debts (SINKRON KE BACKEND, sebelumnya cuma mutasi state lokal) ---- */
+  addDebt: async (p) => {
+    const debt = await debtApi.create(p);
+    set((s) => ({ debts: [...s.debts, debt] }));
   },
-  removeDebtPayment: async (id) => set((s) => {
-    const pay = s.debtPayments.find((p) => p.id === id);
-    if (!pay) return s;
-    return {
-      debtPayments: s.debtPayments.filter((p) => p.id !== id),
-      debts: s.debts.map((d) => d.id === pay.debtId ? { ...d, remainingDebt: Math.min(d.totalDebt, d.remainingDebt + pay.amount), status: "active", updatedAt: now() } : d),
-    };
-  }),
+  updateDebt: async (id, p) => {
+    // DebtFormModal selalu mengirim payload lengkap (bukan partial patch),
+    // jadi aman dikirim langsung — DebtController::update() tidak fallback ke nilai lama.
+    const debt = await debtApi.update(id, p);
+    set((s) => ({ debts: s.debts.map((d) => (d.id === id ? debt : d)) }));
+  },
+  removeDebt: async (id) => {
+    await debtApi.remove(id);
+    set((s) => ({ debts: s.debts.filter((d) => d.id !== id), debtPayments: s.debtPayments.filter((p) => p.debtId !== id) }));
+  },
+  addDebtPayment: async (p) => {
+    const result = await debtApi.pay(p.debtId, p);
+    // Backend juga memotong saldo Account & mencatat Transaction "Debt Payment",
+    // jadi refresh keduanya biar Kanban saldo & ledger tetap sinkron dengan server.
+    const [{ items }, accountsRes] = await Promise.all([
+      fetchAllTransactionPages(),
+      accountApi.getAll(),
+    ]);
+    const normalized = normalizeTransactions(items);
+    set((s) => ({
+      debts: s.debts.map((d) => (d.id === p.debtId ? result.debt : d)),
+      debtPayments: [...s.debtPayments, result.payment],
+      transactions: normalized,
+      allTransactions: normalized,
+      accounts: accountsRes,
+      accountMap: Object.fromEntries(accountsRes.map((a: Account) => [a.id, a])),
+    }));
+  },
+  removeDebtPayment: async (id) => {
+    // Belum ada endpoint hapus per-payment di backend (DebtController belum expose ini).
+    throw new Error("Menghapus satu pembayaran utang belum didukung backend.");
+  },
 
-  /* ---- trades ---- */
-  addTrade: async (p) => set((s) => ({ trades: [...s.trades, { ...p, id: uid() }] })),
-  updateTrade: async (id, p) => set((s) => ({ trades: s.trades.map((t) => (t.id === id ? { ...t, ...p } : t)) })),
-  removeTrade: async (id) => set((s) => ({ trades: s.trades.filter((t) => t.id !== id) })),
+  /* ---- trades (SINKRON KE BACKEND, sebelumnya cuma mutasi state lokal) ---- */
+  addTrade: async (p) => {
+    const trade = await tradeApi.create(p);
+    set((s) => ({ trades: [...s.trades, trade] }));
+  },
+  updateTrade: async (id, p) => {
+    const trade = await tradeApi.update(id, p);
+    set((s) => ({ trades: s.trades.map((t) => (t.id === id ? trade : t)) }));
+  },
+  removeTrade: async (id) => {
+    await tradeApi.remove(id);
+    set((s) => ({ trades: s.trades.filter((t) => t.id !== id) }));
+  },
 }));
 
 export { default as selectors } from "./selectors";

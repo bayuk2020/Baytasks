@@ -56,6 +56,7 @@ function TransactionsPage() {
   const loadTransactions = useFinanceStore((state) => state.loadTransactions);
   const loadIncomeSources = useFinanceStore((state) => state.loadIncomeSources);
   const loadContacts = useFinanceStore((state) => state.loadContacts);
+  const loadCategories = useFinanceStore((state) => state.loadCategories);
 
   const [open, setOpen] = useState(false);
   const [defaultType, setDefaultType] = useState<TransactionType>("expense");
@@ -77,7 +78,7 @@ function TransactionsPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    Promise.all([loadAccounts(), loadTransactions(), loadIncomeSources(), loadContacts()]).catch(
+    Promise.all([loadAccounts(), loadTransactions(), loadIncomeSources(), loadContacts(), loadCategories()]).catch(
       (error) => {
         console.error(error);
         toast.error("Gagal memuat data keuangan");

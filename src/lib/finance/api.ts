@@ -31,10 +31,67 @@ function transactionPayload(payload: any) {
   const y = localDate.getFullYear();
   const m = String(localDate.getMonth() + 1).padStart(2, "0");
   const d = String(localDate.getDate()).padStart(2, "0");
-  
+
   return {
     ...payload,
     transactionDate: `${y}-${m}-${d}`, // Format murni YYYY-MM-DD lokal WIB
+  };
+}
+
+// Backend controller Budget/Debt/Trade masih baca $request->snake_case langsung
+// (bukan FormRequest camelCase seperti Transaction/Contact), jadi payload dari
+// FormModal (camelCase) wajib dikonversi dulu di sini sebelum dikirim.
+function toDateString(value: number | string | undefined | null) {
+  if (!value) return undefined;
+  const date = new Date(value);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function budgetPayload(payload: any) {
+  return {
+    category: payload.category,
+    monthly_limit: payload.monthlyLimit,
+    notes: payload.notes,
+  };
+}
+
+function debtPayload(payload: any) {
+  return {
+    creditor: payload.creditor,
+    total_debt: payload.totalDebt,
+    remaining_debt: payload.remainingDebt,
+    monthly_payment: payload.monthlyPayment,
+    due_date: toDateString(payload.dueDate),
+    notes: payload.notes,
+    status: payload.status,
+  };
+}
+
+function debtPaymentPayload(payload: any) {
+  return {
+    account_id: payload.accountId,
+    amount: payload.amount,
+    paid_at: toDateString(payload.paidAt),
+    notes: payload.notes,
+  };
+}
+
+function tradePayload(payload: any) {
+  return {
+    account_id: payload.accountId,
+    symbol: payload.symbol,
+    side: payload.side,
+    quantity: payload.quantity,
+    entry_price: payload.entryPrice,
+    exit_price: payload.exitPrice,
+    fees: payload.fees,
+    status: payload.status,
+    opened_at: toDateString(payload.openedAt),
+    closed_at: toDateString(payload.closedAt),
+    notes: payload.notes,
   };
 }
 
@@ -124,32 +181,36 @@ export const contactApi = {
   },
 };
 
+export const categoryApi = {
+  getAll: () => request("/finance/categories"),
+};
+
 export const budgetApi = {
   getAll: () => request("/finance/budgets"),
   create: (payload: any) =>
-    request("/finance/budgets", { method: "POST", body: JSON.stringify(payload) }),
+    request("/finance/budgets", { method: "POST", body: JSON.stringify(budgetPayload(payload)) }),
   update: (id: string, payload: any) =>
-    request(`/finance/budgets/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+    request(`/finance/budgets/${id}`, { method: "PATCH", body: JSON.stringify(budgetPayload(payload)) }),
   remove: (id: string) => request(`/finance/budgets/${id}`, { method: "DELETE" }),
 };
 
 export const debtApi = {
   getAll: () => request("/finance/debts"),
   create: (payload: any) =>
-    request("/finance/debts", { method: "POST", body: JSON.stringify(payload) }),
+    request("/finance/debts", { method: "POST", body: JSON.stringify(debtPayload(payload)) }),
   update: (id: string, payload: any) =>
-    request(`/finance/debts/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+    request(`/finance/debts/${id}`, { method: "PATCH", body: JSON.stringify(debtPayload(payload)) }),
   remove: (id: string) => request(`/finance/debts/${id}`, { method: "DELETE" }),
   pay: (id: string, payload: any) =>
-    request(`/finance/debts/${id}/payments`, { method: "POST", body: JSON.stringify(payload) }),
+    request(`/finance/debts/${id}/payments`, { method: "POST", body: JSON.stringify(debtPaymentPayload(payload)) }),
 };
 
 export const tradeApi = {
   getAll: () => request("/finance/trades"),
   create: (payload: any) =>
-    request("/finance/trades", { method: "POST", body: JSON.stringify(payload) }),
+    request("/finance/trades", { method: "POST", body: JSON.stringify(tradePayload(payload)) }),
   update: (id: string, payload: any) =>
-    request(`/finance/trades/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+    request(`/finance/trades/${id}`, { method: "PATCH", body: JSON.stringify(tradePayload(payload)) }),
   remove: (id: string) => request(`/finance/trades/${id}`, { method: "DELETE" }),
 };
 
