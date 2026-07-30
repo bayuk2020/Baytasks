@@ -7,6 +7,7 @@ import {
 } from "@/lib/store";
 
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -14,6 +15,7 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
+  Clock,
   Sparkles,
 } from "lucide-react";
 
@@ -24,6 +26,20 @@ import {
 import {
   motion,
 } from "framer-motion";
+
+import {
+  memoryApi,
+  type Memory,
+} from "@/lib/api";
+
+// Format tanggal LOKAL (bukan toISOString() yang UTC -- bisa geser tanggal
+// kalau timezone user di belakang UTC) untuk dikirim sebagai query ?date=.
+const toLocalDateStr = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 export const Route =
   createFileRoute(
@@ -70,6 +86,35 @@ function CalendarPage() {
   ] = useState<
     string | null
   >(null);
+
+  // =========================
+  // DAILY LOG / TIMELINE (Memories)
+  // =========================
+
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [loadingMemories, setLoadingMemories] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingMemories(true);
+
+    memoryApi
+      .getAll({ date: toLocalDateStr(selectedDate) })
+      .then((data) => {
+        if (!cancelled) setMemories(data);
+      })
+      .catch((error) => {
+        console.error(error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingMemories(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate]);
 
   // =========================
   // CALENDAR CELLS
@@ -583,6 +628,13 @@ function CalendarPage() {
                 new Date()
                   .toDateString();
 
+            const isSelected =
+
+              c.date &&
+
+              c.date.toDateString() ===
+                selectedDate.toDateString();
+
             const items =
 
               c.date
@@ -603,6 +655,10 @@ function CalendarPage() {
 
                 key={i}
 
+                onClick={() => {
+                  if (c.date) setSelectedDate(c.date);
+                }}
+
                 className={`
                   min-h-[120px]
 
@@ -613,6 +669,10 @@ function CalendarPage() {
                   border
 
                   transition-all
+
+                  ${c.date ? "cursor-pointer" : ""}
+
+                  ${isSelected ? "ring-2 ring-cyan-400/60" : ""}
 
                   ${
                     c.date
@@ -756,6 +816,67 @@ function CalendarPage() {
             );
           })}
         </div>
+      </motion.div>
+
+      {/* ========================= */}
+      {/* DAILY LOG / TIMELINE (Memories) */}
+      {/* ========================= */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass rounded-3xl p-6 border border-border/40"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-cyan-300" />
+            <h2 className="text-sm font-semibold tracking-tight">
+              Daily Log —{" "}
+              {selectedDate.toLocaleDateString(undefined, {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}
+            </h2>
+          </div>
+          {selectedDate.toDateString() !== new Date().toDateString() && (
+            <button
+              onClick={() => setSelectedDate(new Date())}
+              className="text-xs text-cyan-300 hover:text-cyan-200 transition"
+            >
+              Kembali ke hari ini
+            </button>
+          )}
+        </div>
+
+        {loadingMemories ? (
+          <div className="text-center text-sm text-muted-foreground py-8">Memuat aktivitas…</div>
+        ) : memories.length === 0 ? (
+          <div className="text-center text-sm text-muted-foreground py-8">
+            Belum ada aktivitas tercatat di tanggal ini.
+          </div>
+        ) : (
+          <ol className="relative border-l border-border pl-5 space-y-5">
+            {memories.map((m) => (
+              <li key={m.id} className="relative">
+                <span className="absolute -left-[25px] top-1 h-3 w-3 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.6)]" />
+                <div className="text-[11px] text-muted-foreground">
+                  {m.occurredAt
+                    ? new Date(m.occurredAt).toLocaleTimeString(undefined, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "—"}
+                </div>
+                <div className="text-sm font-medium mt-0.5">{m.title}</div>
+                {m.content && m.content !== m.title && (
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    {m.content}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
       </motion.div>
 
       {/* ========================= */}

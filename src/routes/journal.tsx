@@ -10,11 +10,28 @@ import {
   Save,
   Bold,
   Italic,
+  Underline,
+  Strikethrough,
   List,
+  ListChecks,
+  Heading1,
   Heading2,
+  Heading3,
+  Link2,
+  Palette,
   Hash,
   Sparkles,
 } from "lucide-react";
+
+const LINK_COLOR_SWATCHES = [
+  "#f8fafc",
+  "#38bdf8",
+  "#34d399",
+  "#facc15",
+  "#fb923c",
+  "#f472b6",
+  "#a78bfa",
+];
 
 export const Route = createFileRoute("/journal")({
   head: () => ({
@@ -211,6 +228,15 @@ function Editor({
 
   const [saving, setSaving] = useState<"idle" | "saving" | "saved">("idle");
 
+  // Popover kecil untuk Link & Text Color -- keduanya butuh input tambahan
+  // (URL / warna) di luar toolbar, jadi selection di area contentEditable
+  // harus disimpan dulu sebelum fokus pindah ke input popover, lalu
+  // dikembalikan sebelum menjalankan execCommand.
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkValue, setLinkValue] = useState("");
+  const [colorOpen, setColorOpen] = useState(false);
+  const savedRange = useRef<Range | null>(null);
+
   // =========================
   // SYNC WHEN SWITCH JOURNAL
   // =========================
@@ -225,6 +251,9 @@ function Editor({
     if (ref.current) {
       ref.current.innerHTML = journal.content || "<p></p>";
     }
+
+    setLinkOpen(false);
+    setColorOpen(false);
   }, [journal.id]);
 
   // =========================
@@ -260,6 +289,80 @@ function Editor({
       debouncedSave({
         content: ref.current.innerHTML,
       });
+    }
+  };
+
+  // Klik tombol toolbar (mousedown) bikin fokus pindah dari area editable,
+  // jadi selection teks yang lagi di-highlight hilang. Simpan Range-nya di
+  // sini sebelum itu terjadi, supaya bisa dikembalikan lagi nanti (dipakai
+  // untuk Link & Text Color yang butuh popover terpisah).
+  const captureSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && ref.current?.contains(sel.anchorNode)) {
+      savedRange.current = sel.getRangeAt(0).cloneRange();
+    }
+  };
+
+  const restoreSelection = () => {
+    if (!ref.current || !savedRange.current) return;
+    ref.current.focus();
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(savedRange.current);
+  };
+
+  const insertTaskList = () => {
+    document.execCommand(
+      "insertHTML",
+      false,
+      '<ul class="task-list"><li class="task-list-item"><label contenteditable="false"><input type="checkbox" /></label><span> Tugas baru</span></li></ul><p></p>',
+    );
+    if (ref.current) {
+      debouncedSave({ content: ref.current.innerHTML });
+    }
+  };
+
+  const applyColor = (color: string) => {
+    restoreSelection();
+    document.execCommand("foreColor", false, color);
+    setColorOpen(false);
+    if (ref.current) {
+      debouncedSave({ content: ref.current.innerHTML });
+    }
+  };
+
+  const applyLink = () => {
+    const url = linkValue.trim();
+    if (!url) {
+      setLinkOpen(false);
+      return;
+    }
+    restoreSelection();
+    document.execCommand(
+      "createLink",
+      false,
+      /^https?:\/\//i.test(url) ? url : `https://${url}`,
+    );
+    setLinkOpen(false);
+    setLinkValue("");
+    if (ref.current) {
+      debouncedSave({ content: ref.current.innerHTML });
+    }
+  };
+
+  // Klik checkbox task-list: toggle state tercentang + garis coret teksnya,
+  // lalu sinkronkan atribut `checked` di DOM (bukan cuma property) supaya
+  // saat innerHTML disimpan & dimuat ulang, status centangnya ikut tersimpan.
+  const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target instanceof HTMLInputElement && target.type === "checkbox") {
+      const checked = target.checked;
+      if (checked) target.setAttribute("checked", "checked");
+      else target.removeAttribute("checked");
+      target.closest(".task-list-item")?.classList.toggle("task-done", checked);
+      if (ref.current) {
+        debouncedSave({ content: ref.current.innerHTML });
+      }
     }
   };
 
@@ -603,6 +706,7 @@ function Editor({
           flex
           items-center
           gap-1
+          flex-wrap
 
           p-1
           mb-3
@@ -620,41 +724,112 @@ function Editor({
           shadow-[0_0_24px_-12px_var(--primary)]
         "
       >
-        <TbBtn onClick={() => exec("bold")}>
-          <Bold
-            className="
-              h-3.5
-              w-3.5
-            "
-          />
+        <TbBtn onClick={() => exec("bold")} title="Bold">
+          <Bold className="h-3.5 w-3.5" />
         </TbBtn>
 
-        <TbBtn onClick={() => exec("italic")}>
-          <Italic
-            className="
-              h-3.5
-              w-3.5
-            "
-          />
+        <TbBtn onClick={() => exec("italic")} title="Italic">
+          <Italic className="h-3.5 w-3.5" />
         </TbBtn>
 
-        <TbBtn onClick={() => exec("formatBlock", "H2")}>
-          <Heading2
-            className="
-              h-3.5
-              w-3.5
-            "
-          />
+        <TbBtn onClick={() => exec("underline")} title="Underline">
+          <Underline className="h-3.5 w-3.5" />
         </TbBtn>
 
-        <TbBtn onClick={() => exec("insertUnorderedList")}>
-          <List
-            className="
-              h-3.5
-              w-3.5
-            "
-          />
+        <TbBtn onClick={() => exec("strikeThrough")} title="Strikethrough">
+          <Strikethrough className="h-3.5 w-3.5" />
         </TbBtn>
+
+        <div className="w-px h-4 bg-border mx-0.5" />
+
+        <TbBtn onClick={() => exec("formatBlock", "H1")} title="Heading 1">
+          <Heading1 className="h-3.5 w-3.5" />
+        </TbBtn>
+
+        <TbBtn onClick={() => exec("formatBlock", "H2")} title="Heading 2">
+          <Heading2 className="h-3.5 w-3.5" />
+        </TbBtn>
+
+        <TbBtn onClick={() => exec("formatBlock", "H3")} title="Heading 3">
+          <Heading3 className="h-3.5 w-3.5" />
+        </TbBtn>
+
+        <div className="w-px h-4 bg-border mx-0.5" />
+
+        <TbBtn onClick={() => exec("insertUnorderedList")} title="Bullet list">
+          <List className="h-3.5 w-3.5" />
+        </TbBtn>
+
+        <TbBtn onClick={insertTaskList} title="Checklist">
+          <ListChecks className="h-3.5 w-3.5" />
+        </TbBtn>
+
+        <div className="w-px h-4 bg-border mx-0.5" />
+
+        <div className="relative">
+          <TbBtn
+            onClick={() => {
+              captureSelection();
+              setLinkOpen((v) => !v);
+              setColorOpen(false);
+            }}
+            title="Link"
+          >
+            <Link2 className="h-3.5 w-3.5" />
+          </TbBtn>
+          {linkOpen && (
+            <div className="absolute top-full left-0 mt-1.5 z-20 flex items-center gap-1.5 p-1.5 rounded-lg border border-border bg-popover shadow-lg">
+              <input
+                autoFocus
+                value={linkValue}
+                onChange={(e) => setLinkValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applyLink();
+                  }
+                  if (e.key === "Escape") setLinkOpen(false);
+                }}
+                placeholder="https://…"
+                className="w-44 bg-transparent text-xs outline-none px-1.5 py-1 rounded border border-border focus:ring-1 focus:ring-ring"
+              />
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={applyLink}
+                className="text-xs px-2 py-1 rounded-md bg-primary/15 text-primary hover:bg-primary/25 transition whitespace-nowrap"
+              >
+                Apply
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="relative">
+          <TbBtn
+            onClick={() => {
+              captureSelection();
+              setColorOpen((v) => !v);
+              setLinkOpen(false);
+            }}
+            title="Text color"
+          >
+            <Palette className="h-3.5 w-3.5" />
+          </TbBtn>
+          {colorOpen && (
+            <div className="absolute top-full left-0 mt-1.5 z-20 flex items-center gap-1.5 p-1.5 rounded-lg border border-border bg-popover shadow-lg">
+              {LINK_COLOR_SWATCHES.map((c) => (
+                <button
+                  key={c}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => applyColor(c)}
+                  className="h-5 w-5 rounded-full border border-border/60 hover:scale-110 transition-transform"
+                  style={{ background: c }}
+                  aria-label={c}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ========================= */}
@@ -672,6 +847,7 @@ function Editor({
             content: html,
           });
         }}
+        onClick={handleContentClick}
         className="
           prose
           prose-invert
@@ -685,15 +861,43 @@ function Editor({
           text-sm
           leading-relaxed
 
+          [&_h1]:text-2xl
+          [&_h1]:font-bold
+          [&_h1]:mt-5
+          [&_h1]:mb-2
+
           [&_h2]:text-xl
           [&_h2]:font-semibold
           [&_h2]:mt-4
           [&_h2]:mb-2
 
+          [&_h3]:text-base
+          [&_h3]:font-semibold
+          [&_h3]:mt-3
+          [&_h3]:mb-1.5
+
           [&_p]:my-2
+
+          [&_u]:underline
+          [&_strike]:line-through
+          [&_s]:line-through
+
+          [&_a]:text-primary
+          [&_a]:underline
+          [&_a]:cursor-pointer
 
           [&_ul]:list-disc
           [&_ul]:pl-5
+
+          [&_.task-list]:list-none
+          [&_.task-list]:pl-0
+          [&_.task-list-item]:flex
+          [&_.task-list-item]:items-start
+          [&_.task-list-item]:gap-2
+          [&_.task-list-item]:my-1
+          [&_.task-list-item_input]:mt-1
+          [&_.task-list-item.task-done_span]:line-through
+          [&_.task-list-item.task-done_span]:text-muted-foreground
 
           [&_strong]:text-foreground
         "
@@ -702,9 +906,19 @@ function Editor({
   );
 }
 
-function TbBtn({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+function TbBtn({
+  children,
+  onClick,
+  title,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  title?: string;
+}) {
   return (
     <button
+      type="button"
+      title={title}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className="h-7 w-7 grid place-items-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition"

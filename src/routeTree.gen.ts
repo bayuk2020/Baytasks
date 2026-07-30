@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StoryRouteImport } from './routes/story'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PomodoroRouteImport } from './routes/pomodoro'
 import { Route as LibraryRouteImport } from './routes/library'
@@ -36,6 +37,11 @@ import { Route as FinanceAnalyticsRouteImport } from './routes/finance.analytics
 import { Route as FinanceAccountsRouteImport } from './routes/finance.accounts'
 import { Route as BookBookIdRouteImport } from './routes/book.$bookId'
 
+const StoryRoute = StoryRouteImport.update({
+  id: '/story',
+  path: '/story',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/library': typeof LibraryRoute
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
+  '/story': typeof StoryRoute
   '/book/$bookId': typeof BookBookIdRoute
   '/finance/accounts': typeof FinanceAccountsRoute
   '/finance/analytics': typeof FinanceAnalyticsRoute
@@ -207,6 +214,7 @@ export interface FileRoutesByTo {
   '/library': typeof LibraryRoute
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
+  '/story': typeof StoryRoute
   '/book/$bookId': typeof BookBookIdRoute
   '/finance/accounts': typeof FinanceAccountsRoute
   '/finance/analytics': typeof FinanceAnalyticsRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/library': typeof LibraryRoute
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
+  '/story': typeof StoryRoute
   '/book/$bookId': typeof BookBookIdRoute
   '/finance/accounts': typeof FinanceAccountsRoute
   '/finance/analytics': typeof FinanceAnalyticsRoute
@@ -266,6 +275,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/pomodoro'
     | '/settings'
+    | '/story'
     | '/book/$bookId'
     | '/finance/accounts'
     | '/finance/analytics'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/pomodoro'
     | '/settings'
+    | '/story'
     | '/book/$bookId'
     | '/finance/accounts'
     | '/finance/analytics'
@@ -321,6 +332,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/pomodoro'
     | '/settings'
+    | '/story'
     | '/book/$bookId'
     | '/finance/accounts'
     | '/finance/analytics'
@@ -350,6 +362,7 @@ export interface RootRouteChildren {
   LibraryRoute: typeof LibraryRoute
   PomodoroRoute: typeof PomodoroRoute
   SettingsRoute: typeof SettingsRoute
+  StoryRoute: typeof StoryRoute
   BookBookIdRoute: typeof BookBookIdRoute
   GoalsIdRoute: typeof GoalsIdRoute
   GoalsCreateRoute: typeof GoalsCreateRoute
@@ -359,6 +372,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/story': {
+      id: '/story'
+      path: '/story'
+      fullPath: '/story'
+      preLoaderRoute: typeof StoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -584,6 +604,7 @@ const rootRouteChildren: RootRouteChildren = {
   LibraryRoute: LibraryRoute,
   PomodoroRoute: PomodoroRoute,
   SettingsRoute: SettingsRoute,
+  StoryRoute: StoryRoute,
   BookBookIdRoute: BookBookIdRoute,
   GoalsIdRoute: GoalsIdRoute,
   GoalsCreateRoute: GoalsCreateRoute,

@@ -1,15 +1,14 @@
 /* eslint-disable prettier/prettier */
-import { Search, Sun, Moon, Command, Clock, Flame } from "lucide-react";
+import { Sun, Moon, Command, Clock, Flame } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { computeStreak } from "@/lib/momentum";
 import { NotificationBell } from "./NotificationCenter";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
-export function Topbar({ onSearch, search, onOpenPalette }: {
-  onSearch?: (q: string) => void;
-  search?: string;
+export function Topbar({ onOpenPalette }: {
   onOpenPalette?: () => void;
 }) {
-  const { theme, toggleTheme } = useStore();
+  const { theme, toggleTheme, tasks } = useStore();
 
   // =========================================================
   // STATE JAM REAL-TIME LAPTOP
@@ -37,51 +36,16 @@ export function Topbar({ onSearch, search, onOpenPalette }: {
     month: "short"
   });
 
-  // =========================================================
-  // STREAK CALCULATION (INJECTED FROM ZUSTAND)
-  // =========================================================
-  const completedDays = Array.from(
-    new Set(
-      useStore
-        .getState()
-        .tasks.filter((t) => t.completedAt)
-        .map((t) => {
-          const d = new Date(t.completedAt!);
-          d.setHours(0, 0, 0, 0);
-          return d.getTime();
-        }),
-    ),
-  ).sort((a, b) => b - a);
-
-  let streakCount = 0;
-  for (let i = 0; i < completedDays.length; i++) {
-    if (i === 0) {
-      streakCount++;
-      continue;
-    }
-    const diff = completedDays[i - 1] - completedDays[i];
-    if (diff === 86400000) {
-      streakCount++;
-    } else {
-      break;
-    }
-  }
+  // Pakai modul bersama (src/lib/momentum.ts) supaya angkanya SELALU sama
+  // dengan yang ditampilkan Sidebar & Dashboard -- sebelumnya masing-masing
+  // komponen punya salinan logika sendiri yang bisa saling beda hasil.
+  const streakCount = useMemo(() => computeStreak(tasks), [tasks]);
 
   return (
     <header className="sticky top-0 z-30 glass-strong border-b border-border">
       <div className="flex items-center gap-3 px-5 py-3">
-        {/* INPUT SEARCH */}
-        <div className="relative flex-1 max-w-xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            value={search ?? ""}
-            onChange={(e) => onSearch?.(e.target.value)}
-            placeholder="Search tasks, tags, boards…"
-            className="w-full rounded-lg bg-secondary/60 border border-border pl-9 pr-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
-          />
-        </div>
-
-        {/* QUICK PALETTE BUTTON */}
+        {/* QUICK PALETTE BUTTON (search sepenuhnya lewat Command Palette) */}
+        <div className="flex-1" />
         <button
           onClick={onOpenPalette}
           className="hidden sm:inline-flex items-center gap-2 h-9 px-3 rounded-lg border border-border hover:border-primary/50 hover:text-primary transition text-xs text-muted-foreground"

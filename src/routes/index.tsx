@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useMemo, useEffect } from "react";
 import { ContinueReading } from "@/components/library/ContinueReading";
+import { computeWeeklyMomentum, computeStreak } from "@/lib/momentum";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -44,7 +45,6 @@ function Dashboard() {
   tasks,
   boards,
   activeBoardId,
-  streak,
   habits,
   habitLogs,
   xp,
@@ -99,26 +99,15 @@ useEffect(() => {
 
   const habitDoneCount = todaysHabits.filter((h) => h.done).length;
 
-  const weekData = useMemo(() => {
-    const days: { label: string; tasks: number; habits: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const key = todayKey(d);
-      const completed = tasks.filter(
-        (t) => t.completedAt && new Date(t.completedAt).toDateString() === d.toDateString(),
-      ).length;
-      const h = habitLogs.filter((l) => l.date === key).length;
-      days.push({
-        label: d.toLocaleDateString(undefined, { weekday: "short" })[0],
-        tasks: completed,
-        habits: h,
-      });
-    }
-    return days;
-  }, [tasks, habitLogs]);
+  const weekData = useMemo(() => computeWeeklyMomentum(tasks, habitLogs), [tasks, habitLogs]);
 
-  const maxWeek = Math.max(1, ...weekData.map((d) => d.tasks + d.habits));
+  const maxWeek = Math.max(1, ...weekData.map((d) => d.total));
+
+  // Dihitung LIVE dari tasks (sama seperti Topbar/Sidebar), bukan dari
+  // store.streak yang cuma ter-update lewat bumpStreak() manual di TaskModal
+  // -- itu bikin angkanya tidak naik kalau task diselesaikan lewat
+  // drag-and-drop di Kanban board.
+  const liveStreak = useMemo(() => computeStreak(tasks), [tasks]);
   const level = xpToLevel(xp);
   const rank = rankFor(level.level);
   const quote = QUOTES[new Date().getDate() % QUOTES.length];
@@ -161,7 +150,7 @@ useEffect(() => {
         <KPI
           icon={<Flame className="h-4 w-4" />}
           label="Streak"
-          value={`${streak.current}d`}
+          value={`${liveStreak}d`}
           sub={`Rank · ${rank}`}
         />
         <KPI
@@ -294,18 +283,34 @@ useEffect(() => {
               </p>
             </div>
           </div>
+          {/* BUG LAMA #1: parent ini pakai `items-end`, jadi tiap kolom hari
+              tidak pernah dapat tinggi eksplisit -- diganti `items-stretch`.
+              BUG LAMA #2 (baru ketahuan): meski parent sudah punya tinggi
+              pasti, animasi `height: "X%"` di framer-motion tetap resolve ke
+              0px -- framer-motion menghitung target keyframe SEKALI di awal
+              animasi, dan pada saat itu tinggi parent (`flex-1` di dalam
+              kolom yang baru saja mount) belum tentu sudah final akibat race
+              layout vs mount. Solusi paling stabil: jangan pakai persentase
+              CSS sama sekali -- hitung tinggi bar dalam PIXEL langsung di JS
+              (area bar tetap: 128px, sisa 32px dari h-40/160px untuk label +
+              gap di bawahnya), lalu animate ke angka piksel itu. Angka murni
+              tidak butuh resolusi ukuran parent sama sekali. */}
           <div className="flex items-end gap-3 h-40">
             {weekData.map((d, i) => {
-              const total = d.tasks + d.habits;
-              const h = (total / maxWeek) * 100;
+              const barAreaPx = 128;
+              const hPx = maxWeek > 0 ? (d.total / maxWeek) * barAreaPx : 0;
               return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="w-full flex-1 flex items-end">
+                <div
+                  key={i}
+                  className="flex-1 flex flex-col items-center gap-2"
+                  title={`${d.tasks} task + ${d.habits} habit selesai`}
+                >
+                  <div className="w-full h-32 flex items-end">
                     <motion.div
                       initial={{ height: 0 }}
-                      animate={{ height: `${h}%` }}
+                      animate={{ height: hPx }}
                       transition={{ delay: i * 0.05, type: "spring", stiffness: 80 }}
-                      className="w-full rounded-t-lg bg-gradient-to-t from-primary/30 to-primary shadow-[0_0_20px_-4px_var(--primary)]"
+                      className="w-full rounded-t-lg bg-gradient-to-t from-primary/30 to-primary shadow-[0_0_20px_-4px_var(--primary)] min-h-[3px]"
                     />
                   </div>
                   <div className="text-[10px] text-muted-foreground">{d.label}</div>

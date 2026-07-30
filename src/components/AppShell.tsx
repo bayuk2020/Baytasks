@@ -5,7 +5,9 @@ import { Topbar } from "./Topbar";
 import { Toaster } from "sonner";
 import { useEffect, useState, createContext, useContext } from "react";
 import { useStore } from "@/lib/store";
+import { useReminders } from "@/lib/useReminders";
 import { CommandPalette } from "./CommandPalette";
+import { FloatingAiChat } from "./FloatingAiChat";
 
 interface SearchCtx {
   q: string;
@@ -19,6 +21,11 @@ export function AppShell() {
   const [q, setQ] = useState("");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const theme = useStore((s) => s.theme);
+
+  // Mesin reminder Task & Habit web -- WAJIB di-mount di sini (root layout)
+  // supaya jalan di semua halaman. Sebelumnya hook ini ada tapi tidak pernah
+  // dipanggil sama sekali, jadi notifikasi bell selalu kosong.
+  useReminders();
 
   useEffect(() => {
     document.documentElement.classList.toggle("light", theme === "light");
@@ -40,7 +47,7 @@ export function AppShell() {
       <div className="flex min-h-screen">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <Topbar search={q} onSearch={setQ} onOpenPalette={() => setPaletteOpen(true)} />
+          <Topbar onOpenPalette={() => setPaletteOpen(true)} />
           <main className="flex-1 p-5 md:p-8">
             <Outlet />
           </main>
@@ -50,6 +57,9 @@ export function AppShell() {
       <Toaster
         theme="dark"
         position="bottom-right"
+        // Digeser ke atas supaya tidak ketimpa tombol FloatingAiChat yang
+        // permanen nangkring di pojok kanan-bawah yang sama.
+        offset={{ bottom: "96px" }}
         toastOptions={{
           style: {
             background: "var(--surface-elevated)",
@@ -58,6 +68,7 @@ export function AppShell() {
           },
         }}
       />
+      <FloatingAiChat />
     </Ctx.Provider>
   );
 }

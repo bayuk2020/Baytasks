@@ -163,6 +163,7 @@ interface State {
   addBookNote: (payload: any) => Promise<string>;
   updateBookNote: (id: string, payload: any) => Promise<void>;
   removeBookNote: (id: string) => Promise<void>;
+  addNotification: (n: { id: string; type: NotifType; title: string; message: string }) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   clearNotifications: () => void;
@@ -469,6 +470,20 @@ export const useStore = create<State>()((set, get) => ({
       console.error("LOAD TASKS ERROR", err);
     }
   },
+
+  // Dipakai useReminders() untuk mendorong notifikasi task/habit deadline ke
+  // bell icon. `id` dibuat deterministik oleh pemanggil (mis. `task-overdue-{id}`,
+  // `habit-missed-{id}-{tanggal}`) supaya panggilan berulang (hook ini tick tiap
+  // 30 detik) otomatis idempotent -- tidak dobel-dobel notifikasi yang sama.
+  addNotification: (n) => set((s) => {
+    if (s.notifications.some((x) => x.id === n.id)) return s;
+    return {
+      notifications: [
+        { ...n, read: false, createdAt: Date.now() },
+        ...s.notifications,
+      ].slice(0, 100),
+    };
+  }),
 
   markNotificationRead: (id) => set((s) => ({
     notifications: s.notifications.map((n) => n.id === id ? { ...n, read: true } : n),

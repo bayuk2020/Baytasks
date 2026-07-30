@@ -15,6 +15,7 @@ import {
   Wallet,
   Flame,
   GripVertical,
+  Camera,
   Home, CheckSquare, List, Target
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -27,6 +28,7 @@ const navItems = [
   { to: "/goals", label: "Goals", icon: Target },
   { to: "/habits", label: "Habits", icon: Flame },
   { to: "/journal", label: "Journal", icon: NotebookPen },
+  { to: "/story", label: "Story", icon: Camera },
   { to: "/library", label: "Reading Vault", icon: Library },
   { to: "/calendar", label: "Calendar", icon: Calendar },
   { to: "/pomodoro", label: "Pomodoro", icon: Timer },
@@ -55,36 +57,6 @@ export function Sidebar() {
 
   // STATE DRAG & DROP
   const [draggedId, setDraggedId] = useState<string | null>(null);
-
-  // =========================
-  // STREAK CALCULATION
-  // =========================
-  const completedDays = Array.from(
-    new Set(
-      useStore
-        .getState()
-        .tasks.filter((t) => t.completedAt)
-        .map((t) => {
-          const d = new Date(t.completedAt!);
-          d.setHours(0, 0, 0, 0);
-          return d.getTime();
-        }),
-    ),
-  ).sort((a, b) => b - a);
-
-  let streakCount = 0;
-  for (let i = 0; i < completedDays.length; i++) {
-    if (i === 0) {
-      streakCount++;
-      continue;
-    }
-    const diff = completedDays[i - 1] - completedDays[i];
-    if (diff === 86400000) {
-      streakCount++;
-    } else {
-      break;
-    }
-  }
 
   // =========================
   // LOAD BOARDS

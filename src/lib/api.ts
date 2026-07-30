@@ -533,6 +533,91 @@ export const bookNoteApi = {
     }),
 };
 
+// =========================
+// AI WEB CHAT (widget FloatingAiChat)
+// =========================
+
+export interface AiChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface AiChatResponse {
+  success: boolean;
+  reply: string;
+  provider?: string | null;
+}
+
+export const aiApi = {
+  chat: (payload: { message: string; history?: AiChatTurn[] }): Promise<AiChatResponse> =>
+    request("/ai/chat", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+};
+
+// =========================
+// MEMORIES (Log aktivitas dari bot Telegram / AI)
+// =========================
+
+export interface Memory {
+  id: number;
+  type: string;
+  source: string;
+  title: string;
+  content: string;
+  tags: string[] | null;
+  occurredAt: number | null;
+}
+
+export const memoryApi = {
+  getAll: (params?: { date?: string }): Promise<Memory[]> => {
+    const query = new URLSearchParams();
+    if (params?.date) query.set("date", params.date);
+    const suffix = query.size ? `?${query.toString()}` : "";
+    return request(`/memories${suffix}`);
+  },
+};
+
+// =========================
+// STORY (Personal Facebook Feed)
+// =========================
+
+export interface Story {
+  id: number;
+  imagePath: string | null;
+  imageUrl: string | null;
+  caption: string | null;
+  createdAt: number;
+}
+
+export const storyApi = {
+  getAll: (): Promise<Story[]> => request("/stories"),
+
+  create: async (payload: { caption?: string; image?: File }): Promise<Story> => {
+    const formData = new FormData();
+    if (payload.caption) formData.append("caption", payload.caption);
+    if (payload.image) formData.append("image", payload.image);
+
+    const res = await fetch(`${API}/stories`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "API ERROR");
+    }
+
+    return res.json();
+  },
+
+  remove: (id: number) =>
+    request(`/stories/${id}`, {
+      method: "DELETE",
+    }),
+};
+
 /* eslint-disable prettier/prettier */
 
 // Helper untuk menerjemahkan string area dari Lovable menjadi area_id integer di MySQL kamu
