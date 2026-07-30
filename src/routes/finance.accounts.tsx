@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { useFinanceStore, type Account } from "@/lib/finance/store";
@@ -28,7 +29,10 @@ function AccountsPage() {
   const [editing, setEditing] = useState<Account | undefined>();
 
   useEffect(() => {
-    loadAccounts().catch(console.error);
+    loadAccounts().catch((error) => {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Gagal memuat data akun");
+    });
   }, [loadAccounts]);
 
   return (

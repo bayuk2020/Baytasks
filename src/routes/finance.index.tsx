@@ -14,6 +14,7 @@ import { StatCard, formatCurrency } from "@/components/finance/StatCard";
 import { useFinanceSnapshot } from "@/lib/finance/selectors";
 import { useFinanceStore } from "@/lib/finance/store";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/finance/")({
   component: Overview,
@@ -24,7 +25,13 @@ function Overview() {
   const loadAll = useFinanceStore((s) => s.loadAll);
 
   useEffect(() => {
-    loadAll();
+    // Sebelumnya tanpa .catch() -- kalau salah satu request di loadAll() gagal
+    // (mis. backend 500), Promise.all reject diam-diam dan halaman ini cuma
+    // terlihat "kosong" tanpa petunjuk apa pun kalau ada yang error.
+    loadAll().catch((error) => {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Gagal memuat data finance");
+    });
   }, [loadAll]);
 
   return (
