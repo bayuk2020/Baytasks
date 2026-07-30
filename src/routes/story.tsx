@@ -180,8 +180,8 @@ function StoryCard({ story, onDelete }: { story: Story; onDelete: () => void }) 
     >
       <div className="flex items-center justify-between p-4 pb-2">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full grid place-items-center bg-[var(--gradient-neon)] text-sm font-semibold text-primary-foreground">
-            B
+          <div className="h-9 w-9 rounded-full overflow-hidden shrink-0">
+            <img src="/kabyra-logo.jpeg" alt="Bayu" className="h-full w-full object-cover" />
           </div>
           <div>
             <div className="text-sm font-medium">Bayu</div>

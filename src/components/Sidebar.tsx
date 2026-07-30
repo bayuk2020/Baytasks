@@ -8,7 +8,6 @@ import {
   Settings,
   BookOpen,
   Plus,
-  Sparkles,
   Timer,
   NotebookPen,
   Library,
@@ -101,8 +100,8 @@ export function Sidebar() {
     <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/80 backdrop-blur-xl">
       {/* HEADER */}
       <div className="px-5 py-5 flex items-center gap-2">
-        <div className="h-9 w-9 rounded-xl grid place-items-center bg-[var(--gradient-neon)] neon-ring">
-          <Sparkles className="h-5 w-5 text-primary-foreground" />
+        <div className="h-9 w-9 rounded-xl overflow-hidden neon-ring shrink-0">
+          <img src="/kabyra-logo.jpeg" alt="BayTasks" className="h-full w-full object-cover" />
         </div>
         <div>
           <div className="text-base font-semibold tracking-tight">BayTasks</div>
