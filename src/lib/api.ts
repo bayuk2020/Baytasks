@@ -79,9 +79,16 @@ export const subtaskApi = {
     }),
 
   // Fungsi 2: Buat nge-delete subtask (Buka kunci yang ini 🔑)
-  remove: (id: string) => 
+  remove: (id: string) =>
     request(`/subtasks/${id}`, {
       method: "DELETE",
+    }),
+
+  // Fungsi 3: Ganti judul subtask (dipakai edit dobel-klik di TaskModal)
+  updateTitle: (id: string, title: string) =>
+    request(`/subtasks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title }),
     }),
 };
 
@@ -566,9 +573,10 @@ export interface PomodoroSession {
   id: number;
   mode: PomodoroMode;
   startedAt: string;
-  endedAt: string;
-  durationSeconds: number;
+  endedAt: string | null;
+  durationSeconds: number | null;
   completed: boolean;
+  running: boolean;
 }
 
 export interface PomodoroToday {
@@ -603,6 +611,19 @@ export const pomodoroApi = {
 
   today: (): Promise<PomodoroToday> => request("/pomodoro/today"),
 
+  /** Sesi yang sedang berjalan di server (bisa dimulai dari web, Telegram, atau chat AI). */
+  active: (): Promise<{ active: PomodoroSession | null; serverTime: string }> =>
+    request("/pomodoro/active"),
+
+  start: (mode: PomodoroMode): Promise<{ success: boolean; session: PomodoroSession }> =>
+    request("/pomodoro/start", {
+      method: "POST",
+      body: JSON.stringify({ mode }),
+    }),
+
+  stop: (): Promise<{ success: boolean; session?: PomodoroSession }> =>
+    request("/pomodoro/stop", { method: "POST" }),
+
   sessions: (params?: { date?: string }): Promise<{ date: string; sessions: PomodoroSession[] }> => {
     const query = new URLSearchParams();
     if (params?.date) query.set("date", params.date);
@@ -612,6 +633,92 @@ export const pomodoroApi = {
 
   stats: (days = 14): Promise<{ days: number; rows: PomodoroStatRow[] }> =>
     request(`/pomodoro/stats?days=${days}`),
+};
+
+// =========================
+// ANALYTICS (rekap lintas modul + saran AI)
+// =========================
+
+export interface AnalyticsDailyRow {
+  date: string;
+  tasksCreated: number;
+  tasksCompleted: number;
+  focusSeconds: number;
+  focusMinutes: number;
+  shortBreakSeconds: number;
+  longBreakSeconds: number;
+  habitsCompleted: number;
+  journalEntries: number;
+  income: number;
+  expense: number;
+  score: number;
+}
+
+export interface AnalyticsOverview {
+  range: { days: number; from: string; to: string };
+  daily: AnalyticsDailyRow[];
+  tasks: {
+    createdInRange: number;
+    completedInRange: number;
+    openTotal: number;
+    overdue: number;
+    completionRate: number;
+    avgCompletionHours: number | null;
+    byPriority: { low: number; med: number; high: number; urgent: number };
+    byColumn: Record<string, number>;
+    byBoard: { board: string; total: number; done: number }[];
+  };
+  focus: {
+    focusSeconds: number;
+    shortBreakSeconds: number;
+    longBreakSeconds: number;
+    sessionCount: number;
+    activeDays: number;
+    avgPerActiveDaySeconds: number;
+    avgPerDaySeconds: number;
+    focusRatio: number;
+    bestDay: { date: string; seconds: number } | null;
+  };
+  habits: {
+    activeCount: number;
+    completionsInRange: number;
+    possible: number;
+    overallConsistency: number;
+    breakdown: { title: string; completed: number; consistency: number }[];
+  };
+  finance: {
+    income: number;
+    expense: number;
+    cashflow: number;
+    transactionCount: number;
+    savingRate: number;
+    topExpenseCategories: { category: string; total: number }[];
+  };
+  journal: { entries: number; byMood: Record<string, number> };
+  reading: { total: number; reading: number; completed: number; wishlist: number; pagesRead: number };
+  goals: { total: number; completed: number; avgProgress: number };
+}
+
+export interface AnalyticsAdvice {
+  success: boolean;
+  provider?: string | null;
+  days?: number;
+  modules?: Record<string, string>;
+  summary?: string;
+  nextSteps?: string[];
+  generatedAt?: string;
+  message?: string;
+}
+
+export const analyticsApi = {
+  overview: (days = 30): Promise<AnalyticsOverview> =>
+    request(`/analytics/overview?days=${days}`),
+
+  advice: (days = 30): Promise<AnalyticsAdvice> =>
+    request("/analytics/advice", {
+      method: "POST",
+      body: JSON.stringify({ days }),
+    }),
 };
 
 // =========================

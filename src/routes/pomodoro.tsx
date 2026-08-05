@@ -202,7 +202,9 @@ function PomodoroPage() {
                   {MODE_LABEL[s.mode]}
                 </span>
                 <span className="font-mono tabular-nums text-muted-foreground">
-                  {formatDuration(s.durationSeconds)}
+                  {/* Sesi terbuka (masih berjalan) sudah disaring backend, tapi
+                      tetap dijaga di sini supaya tidak pernah render "NaN". */}
+                  {s.durationSeconds === null ? "berjalan…" : formatDuration(s.durationSeconds)}
                 </span>
               </li>
             ))}

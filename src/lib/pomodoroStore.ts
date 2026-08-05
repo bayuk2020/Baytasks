@@ -29,6 +29,18 @@ interface PomodoroState {
    */
   segmentStartedAt: number | null;
 
+  /**
+   * Id baris sesi TERBUKA di server (ended_at masih NULL), kalau ada.
+   *
+   * Sesi Pomodoro bisa dimulai dari mana saja -- widget header, halaman
+   * Pomodoro, bot Telegram, atau chat AI. Server yang jadi sumber kebenaran,
+   * jadi kalau id ini ada, penutupan sesi dilakukan lewat /pomodoro/stop
+   * (server yang menghitung durasinya pakai jamnya sendiri). Kalau null
+   * (mis. saat start gagal karena offline), sesi ditutup lewat jalur lama
+   * dengan mengirim rentang waktu lokal.
+   */
+  serverSessionId: number | null;
+
   /** Durasi preset tiap mode, dalam menit. */
   durations: Record<PomodoroMode, number>;
 
@@ -45,29 +57,44 @@ interface PomodoroState {
   reset: () => void;
   switchMode: (mode: PomodoroMode) => void;
   markAlerted: () => void;
+  /** Adopsi sesi yang sedang berjalan di server (mis. dimulai lewat Telegram). */
+  syncFromServer: () => Promise<void>;
 }
 
 /**
  * Tutup segmen yang sedang berjalan dan kirim ke backend.
- * Dipisah dari store supaya bisa dipakai semua action tanpa duplikasi.
+ *
+ * Dua jalur:
+ *  - Server sudah punya sesi terbuka -> cukup /pomodoro/stop, server yang
+ *    menghitung durasi pakai jamnya sendiri (lebih tepercaya, dan bekerja
+ *    walau sesi tadi dimulai dari Telegram).
+ *  - Server tidak tahu apa-apa (start gagal saat offline) -> kirim rentang
+ *    waktu lokal sebagai satu baris utuh, supaya data tidak hilang.
  */
 async function flushSegment(
   mode: PomodoroMode,
   startedAt: number | null,
+  serverSessionId: number | null,
   completed: boolean,
   onSaved: () => void,
 ) {
-  if (!startedAt) return;
-
-  const endedAt = Date.now();
-  // Segmen < 1 detik memang ditolak backend, tapi disaring di sini juga
-  // supaya tidak buang-buang request.
-  if (endedAt - startedAt < 1000) return;
+  if (!startedAt && !serverSessionId) return;
 
   try {
+    if (serverSessionId) {
+      await pomodoroApi.stop();
+      onSaved();
+      return;
+    }
+
+    const endedAt = Date.now();
+    // Segmen < 1 detik memang ditolak backend, tapi disaring di sini juga
+    // supaya tidak buang-buang request.
+    if (endedAt - startedAt! < 1000) return;
+
     await pomodoroApi.record({
       mode,
-      startedAt: new Date(startedAt).toISOString(),
+      startedAt: new Date(startedAt!).toISOString(),
       endedAt: new Date(endedAt).toISOString(),
       completed,
     });
@@ -78,11 +105,29 @@ async function flushSegment(
   }
 }
 
+/**
+ * Buka sesi baru di server. Dipanggil setelah state lokal sudah berjalan
+ * (optimistis) supaya UI tidak menunggu jaringan.
+ */
+async function openOnServer(mode: PomodoroMode, apply: (id: number, startedAt: number) => void) {
+  try {
+    const res = await pomodoroApi.start(mode);
+    if (res?.session) {
+      apply(res.session.id, new Date(res.session.startedAt).getTime());
+    }
+  } catch (err) {
+    // Bukan kondisi fatal: timer lokal tetap jalan, dan saat ditutup nanti
+    // datanya dikirim lewat jalur cadangan di flushSegment().
+    console.error("POMODORO START ERROR", err);
+  }
+}
+
 export const usePomodoro = create<PomodoroState>()(
   persist(
     (set, get) => ({
       mode: "focus",
       segmentStartedAt: null,
+      serverSessionId: null,
       durations: { focus: 25, short: 5, long: 15 },
       alertedThisSegment: false,
       savedCount: 0,
@@ -92,8 +137,13 @@ export const usePomodoro = create<PomodoroState>()(
           durations: { ...s.durations, [mode]: Math.max(1, Math.round(minutes)) },
         })),
 
-      start: () =>
-        set({ segmentStartedAt: Date.now(), alertedThisSegment: false }),
+      start: () => {
+        const { mode } = get();
+        set({ segmentStartedAt: Date.now(), serverSessionId: null, alertedThisSegment: false });
+        void openOnServer(mode, (id, startedAt) =>
+          set({ serverSessionId: id, segmentStartedAt: startedAt }),
+        );
+      },
 
       /**
        * Alur yang diminta user:
@@ -105,52 +155,93 @@ export const usePomodoro = create<PomodoroState>()(
        *  - Sedang berhenti            -> mulai segmen baru di mode saat ini.
        */
       primaryAction: () => {
-        const { mode, segmentStartedAt, savedCount } = get();
+        const { mode, segmentStartedAt, serverSessionId } = get();
 
         if (!segmentStartedAt) {
-          set({ segmentStartedAt: Date.now(), alertedThisSegment: false });
+          get().start();
           return;
         }
 
         const nextMode: PomodoroMode = mode === "focus" ? "short" : "focus";
 
-        void flushSegment(mode, segmentStartedAt, false, () =>
-          set({ savedCount: get().savedCount + 1 }),
-        );
+        // Tutup segmen lama LALU buka yang baru -- dijalankan berurutan supaya
+        // server tidak menutup sesi baru yang belum sempat terdaftar.
+        void (async () => {
+          await flushSegment(mode, segmentStartedAt, serverSessionId, false, () =>
+            set({ savedCount: get().savedCount + 1 }),
+          );
+          await openOnServer(nextMode, (id, startedAt) =>
+            set({ serverSessionId: id, segmentStartedAt: startedAt }),
+          );
+        })();
 
         set({
           mode: nextMode,
           segmentStartedAt: Date.now(),
+          serverSessionId: null,
           alertedThisSegment: false,
-          savedCount,
         });
       },
 
       /** Hentikan total: catat yang sedang berjalan, lalu kembali ke 00 penuh. */
       reset: () => {
-        const { mode, segmentStartedAt } = get();
+        const { mode, segmentStartedAt, serverSessionId } = get();
 
-        void flushSegment(mode, segmentStartedAt, false, () =>
+        void flushSegment(mode, segmentStartedAt, serverSessionId, false, () =>
           set({ savedCount: get().savedCount + 1 }),
         );
 
-        set({ segmentStartedAt: null, alertedThisSegment: false });
+        set({ segmentStartedAt: null, serverSessionId: null, alertedThisSegment: false });
       },
 
       /** Ganti mode manual: segmen berjalan dicatat dulu, lalu berhenti. */
       switchMode: (next) => {
-        const { mode, segmentStartedAt } = get();
+        const { mode, segmentStartedAt, serverSessionId } = get();
 
         if (next === mode && !segmentStartedAt) return;
 
-        void flushSegment(mode, segmentStartedAt, false, () =>
+        void flushSegment(mode, segmentStartedAt, serverSessionId, false, () =>
           set({ savedCount: get().savedCount + 1 }),
         );
 
-        set({ mode: next, segmentStartedAt: null, alertedThisSegment: false });
+        set({
+          mode: next,
+          segmentStartedAt: null,
+          serverSessionId: null,
+          alertedThisSegment: false,
+        });
       },
 
       markAlerted: () => set({ alertedThisSegment: true }),
+
+      /**
+       * Samakan state lokal dengan sesi terbuka di server. Inilah yang
+       * membuat sesi yang dinyalakan lewat "aku mau fokus" di Telegram
+       * langsung muncul berjalan di header web.
+       */
+      syncFromServer: async () => {
+        try {
+          const { active } = await pomodoroApi.active();
+
+          if (active) {
+            set({
+              mode: active.mode,
+              segmentStartedAt: new Date(active.startedAt).getTime(),
+              serverSessionId: active.id,
+            });
+            return;
+          }
+
+          // Server bilang tidak ada sesi berjalan, tapi lokal mengira ada
+          // (mis. dihentikan lewat Telegram) -> ikuti server.
+          if (get().serverSessionId !== null) {
+            set({ segmentStartedAt: null, serverSessionId: null, alertedThisSegment: false });
+          }
+        } catch (err) {
+          // Offline / server tak terjangkau: biarkan state lokal apa adanya.
+          console.error("POMODORO SYNC ERROR", err);
+        }
+      },
     }),
     {
       name: "baytasks-pomodoro",
@@ -160,6 +251,7 @@ export const usePomodoro = create<PomodoroState>()(
       partialize: (s) => ({
         mode: s.mode,
         segmentStartedAt: s.segmentStartedAt,
+        serverSessionId: s.serverSessionId,
         durations: s.durations,
         alertedThisSegment: s.alertedThisSegment,
       }),

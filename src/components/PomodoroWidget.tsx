@@ -31,6 +31,16 @@ export function PomodoroWidget() {
 
   const { running, remaining, overtime, progress } = usePomodoroTimer();
   const addNotification = useStore((s) => s.addNotification);
+  const syncFromServer = usePomodoro((s) => s.syncFromServer);
+
+  // Ambil sesi yang sedang berjalan di server saat aplikasi dibuka, lalu
+  // periksa ulang berkala -- supaya sesi yang dimulai/dihentikan lewat bot
+  // Telegram atau chat AI ikut terlihat di sini tanpa perlu refresh.
+  useEffect(() => {
+    void syncFromServer();
+    const id = window.setInterval(() => void syncFromServer(), 30_000);
+    return () => window.clearInterval(id);
+  }, [syncFromServer]);
 
   // Bunyi + notifikasi SEKALI saat menyentuh 00:00. Timer sengaja tidak
   // dihentikan supaya durasi sebenarnya (yang mungkin molor) tetap terekam.

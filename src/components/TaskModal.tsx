@@ -100,6 +100,10 @@ export function TaskModal({
 
   const [newSub, setNewSub] = useState("");
 
+  // Edit judul subtask inline: simpan id yang sedang diedit + teks sementaranya.
+  const [editingSubId, setEditingSubId] = useState<string | null>(null);
+  const [editingSubTitle, setEditingSubTitle] = useState("");
+
   // =========================
   // ESC CLOSE
   // =========================
@@ -263,6 +267,57 @@ export function TaskModal({
   };
 
   // =========================
+  // EDIT SUBTASK (dobel-klik judulnya)
+  // =========================
+  const startEditSub = (subtaskId: string, currentTitle: string) => {
+    setEditingSubId(subtaskId);
+    setEditingSubTitle(currentTitle);
+  };
+
+  const cancelEditSub = () => {
+    setEditingSubId(null);
+    setEditingSubTitle("");
+  };
+
+  const saveEditSub = async () => {
+    if (!existing || !editingSubId) return;
+
+    const next = editingSubTitle.trim();
+    const current = existing.subtasks.find((s) => s.id === editingSubId);
+
+    // Kosong atau tidak berubah -> tidak perlu request ke server.
+    if (!next || next === current?.title) {
+      cancelEditSub();
+      return;
+    }
+
+    const targetTaskId = existing.id;
+    const targetSubId = editingSubId;
+    cancelEditSub();
+
+    try {
+      await subtaskApi.updateTitle(targetSubId, next);
+
+      useStore.setState({
+        tasks: useStore.getState().tasks.map((t) =>
+          t.id === targetTaskId
+            ? {
+                ...t,
+                subtasks: t.subtasks.map((s) =>
+                  s.id === targetSubId ? { ...s, title: next } : s,
+                ),
+              }
+            : t,
+        ),
+      });
+      toast.success("Subtask updated successfully");
+    } catch (err) {
+      console.error("UPDATE SUBTASK ERROR", err);
+      toast.error("Gagal menyimpan perubahan subtask");
+    }
+  };
+
+  // =========================
   // ATTACHMENTS
   // =========================
   const onAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -409,28 +464,58 @@ export function TaskModal({
                 {/* REVISI AMAN: Tambahkan optional chaining (?) sebelum .subtasks */}
                 {existing?.subtasks?.map((s) => (
                   <li key={s.id} className="flex items-center justify-between gap-2 group p-1 rounded-md hover:bg-secondary/40">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <button
                         onClick={() => toggleSubtask(existing.id, s.id)}
-                        className={`h-4 w-4 rounded border ${
+                        className={`h-4 w-4 shrink-0 rounded border ${
                           s.done ? "bg-primary border-primary" : "border-border"
                         }`}
                       >
                         {s.done && <Check className="h-3 w-3 text-primary-foreground" />}
                       </button>
 
-                      <span className={`text-sm ${s.done ? "line-through text-muted-foreground" : ""}`}>
-                        {s.title}
-                      </span>
+                      {editingSubId === s.id ? (
+                        <input
+                          autoFocus
+                          value={editingSubTitle}
+                          onChange={(e) => setEditingSubTitle(e.target.value)}
+                          onBlur={saveEditSub}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              void saveEditSub();
+                            }
+                            if (e.key === "Escape") {
+                              e.preventDefault();
+                              cancelEditSub();
+                            }
+                          }}
+                          className="flex-1 min-w-0 bg-secondary/60 rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-ring"
+                        />
+                      ) : (
+                        <span
+                          onDoubleClick={() => startEditSub(s.id, s.title)}
+                          title="Dobel-klik untuk mengubah"
+                          className={`text-sm cursor-text select-none truncate ${
+                            s.done ? "line-through text-muted-foreground" : ""
+                          }`}
+                        >
+                          {s.title}
+                        </span>
+                      )}
                     </div>
 
-                    {/* TOMBOL HAPUS SUBTASK */}
-                    <button
-                      onClick={() => deleteSub(s.id)}
-                      className="opacity-0 group-hover:opacity-100 h-6 w-6 grid place-items-center rounded text-muted-foreground hover:text-[var(--priority-urgent)] hover:bg-accent transition-all"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    {/* TOMBOL HAPUS SUBTASK -- disembunyikan saat sedang mengedit
+                        supaya tidak terklik tak sengaja, dan di mobile tetap
+                        terlihat karena di sana tidak ada :hover. */}
+                    {editingSubId !== s.id && (
+                      <button
+                        onClick={() => deleteSub(s.id)}
+                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 h-6 w-6 shrink-0 grid place-items-center rounded text-muted-foreground hover:text-[var(--priority-urgent)] hover:bg-accent transition-all"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </li>
                 ))}
 
@@ -453,6 +538,12 @@ export function TaskModal({
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">Save the task to add subtasks</p>
+                )}
+
+                {existing && (existing.subtasks?.length ?? 0) > 0 && (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Dobel-klik judul subtask untuk mengubahnya.
+                  </p>
                 )}
               </Field>
 
