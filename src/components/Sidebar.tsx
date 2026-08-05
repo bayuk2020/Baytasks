@@ -15,9 +15,10 @@ import {
   Flame,
   GripVertical,
   Camera,
+  X,
   Home, CheckSquare, List, Target
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { useState, useEffect } from "react";
 
@@ -37,7 +38,7 @@ const navItems = [
   { to: "/finance", label: "Finance Hub", icon: Wallet }
 ];
 
-export function Sidebar() {
+export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
   const loc = useLocation();
 
   const {
@@ -96,17 +97,59 @@ export function Sidebar() {
     if (el) el.style.opacity = "1";
   };
 
+  // Tutup drawer otomatis saat pindah halaman di mobile (UX standar drawer nav).
+  const closeOnMobileNav = () => onClose?.();
+
+  // ESC untuk menutup drawer di mobile.
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/80 backdrop-blur-xl">
+    <>
+      {/* BACKDROP -- hanya mobile, muncul saat drawer terbuka */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
+
+      <aside
+        className={`
+          fixed md:static inset-y-0 left-0 z-50 md:z-auto
+          w-64 shrink-0 flex flex-col border-r border-sidebar-border bg-sidebar/95 md:bg-sidebar/80 backdrop-blur-xl
+          transition-transform duration-300 ease-out md:translate-x-0
+          ${open ? "translate-x-0" : "-translate-x-full"}
+        `}
+      >
       {/* HEADER */}
       <div className="px-5 py-5 flex items-center gap-2">
         <div className="h-9 w-9 rounded-xl overflow-hidden neon-ring shrink-0">
           <img src="/kabyra-logo.jpeg" alt="BayTasks" className="h-full w-full object-cover" />
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="text-base font-semibold tracking-tight">BayTasks</div>
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Focus engine</div>
         </div>
+        <button
+          onClick={onClose}
+          aria-label="Tutup menu"
+          className="md:hidden h-8 w-8 grid place-items-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       {/* NAVIGATION */}
@@ -117,6 +160,7 @@ export function Sidebar() {
             <Link
               key={to}
               to={to}
+              onClick={closeOnMobileNav}
               className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${active ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               {active && (
@@ -184,7 +228,10 @@ export function Sidebar() {
           >
             <Link
               to="/board"
-              onClick={() => setActiveBoard(b.id)}
+              onClick={() => {
+                setActiveBoard(b.id);
+                closeOnMobileNav();
+              }}
               className={`
                 flex-1 flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm transition-colors
                 ${activeBoardId === b.id ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-accent/60"}
@@ -200,6 +247,7 @@ export function Sidebar() {
           </div>
         ))}
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

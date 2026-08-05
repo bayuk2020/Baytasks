@@ -93,7 +93,7 @@ function StoryPage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <header>
         <p className="text-sm text-muted-foreground">Personal feed</p>
-        <h1 className="text-3xl font-semibold tracking-tight mt-1">
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mt-1">
           Your <span className="neon-text">Story</span>
         </h1>
       </header>
@@ -195,7 +195,10 @@ function StoryCard({ story, onDelete }: { story: Story; onDelete: () => void }) 
         </div>
         <button
           onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 transition h-8 w-8 grid place-items-center rounded-lg text-muted-foreground hover:text-rose-400 hover:bg-accent"
+          // opacity-100 default -- di mobile tidak ada :hover, jadi kalau
+          // andalkan opacity-0 group-hover saja tombolnya tak pernah kelihatan
+          // di HP. Md ke atas baru disembunyikan sampai di-hover.
+          className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition h-8 w-8 grid place-items-center rounded-lg text-muted-foreground hover:text-rose-400 hover:bg-accent"
           aria-label="Hapus Story"
         >
           <Trash2 className="h-4 w-4" />

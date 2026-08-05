@@ -15,9 +15,11 @@ import {
   Zap,
   TrendingUp,
 } from "lucide-react";
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { ContinueReading } from "@/components/library/ContinueReading";
 import { computeWeeklyMomentum, computeStreak } from "@/lib/momentum";
+import { pomodoroApi, type PomodoroToday } from "@/lib/api";
+import { usePomodoro, formatDuration } from "@/lib/pomodoroStore";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -111,7 +113,24 @@ useEffect(() => {
   const level = xpToLevel(xp);
   const rank = rankFor(level.level);
   const quote = QUOTES[new Date().getDate() % QUOTES.length];
-  const focusMinutes = todaysHabits.length * 25; // mock pomodoro
+
+  // Focus time ASLI dari tabel pomodoro_sessions. Sebelumnya ini cuma mock
+  // (`todaysHabits.length * 25`) yang tidak ada hubungannya sama sekali
+  // dengan waktu fokus yang benar-benar dijalani.
+  const [focusToday, setFocusToday] = useState<PomodoroToday | null>(null);
+
+  // savedCount naik tiap kali sebuah segmen Pomodoro tersimpan -- dipakai
+  // sebagai pemicu agar angkanya ikut segar tanpa perlu refresh halaman.
+  const pomodoroSaved = usePomodoro((s) => s.savedCount);
+
+  useEffect(() => {
+    pomodoroApi
+      .today()
+      .then(setFocusToday)
+      .catch((err) => console.error("LOAD POMODORO TODAY ERROR", err));
+  }, [pomodoroSaved]);
+
+  const focusSeconds = focusToday?.focusSeconds ?? 0;
 
   return (
     <div className="space-y-8 relative">
@@ -139,7 +158,7 @@ useEffect(() => {
         </Link>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 relative">
         <KPI
           icon={<Target className="h-4 w-4" />}
           label="Focus score"
@@ -162,8 +181,12 @@ useEffect(() => {
         <KPI
           icon={<Timer className="h-4 w-4" />}
           label="Focus time"
-          value={`${focusMinutes}m`}
-          sub="Pomodoro today"
+          value={focusSeconds > 0 ? formatDuration(focusSeconds) : "0m"}
+          sub={
+            focusToday && focusToday.sessionCount > 0
+              ? `${focusToday.sessionCount} sesi hari ini`
+              : "Pomodoro today"
+          }
         />
       </div>
 

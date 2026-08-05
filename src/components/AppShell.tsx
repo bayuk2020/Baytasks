@@ -20,6 +20,7 @@ export const useSearch = () => useContext(Ctx);
 export function AppShell() {
   const [q, setQ] = useState("");
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const theme = useStore((s) => s.theme);
 
   // Mesin reminder Task & Habit web -- WAJIB di-mount di sini (root layout)
@@ -45,10 +46,10 @@ export function AppShell() {
   return (
     <Ctx.Provider value={{ q, setQ, openPalette: () => setPaletteOpen(true) }}>
       <div className="flex min-h-screen">
-        <Sidebar />
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col min-w-0">
-          <Topbar onOpenPalette={() => setPaletteOpen(true)} />
-          <main className="flex-1 p-5 md:p-8">
+          <Topbar onOpenPalette={() => setPaletteOpen(true)} onOpenSidebar={() => setSidebarOpen(true)} />
+          <main className="flex-1 p-4 sm:p-5 md:p-8">
             <Outlet />
           </main>
         </div>

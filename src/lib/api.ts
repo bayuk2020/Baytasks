@@ -557,6 +557,64 @@ export const aiApi = {
 };
 
 // =========================
+// POMODORO (rekaman tiap segmen fokus / istirahat)
+// =========================
+
+export type PomodoroMode = "focus" | "short" | "long";
+
+export interface PomodoroSession {
+  id: number;
+  mode: PomodoroMode;
+  startedAt: string;
+  endedAt: string;
+  durationSeconds: number;
+  completed: boolean;
+}
+
+export interface PomodoroToday {
+  date: string;
+  focusSeconds: number;
+  shortBreakSeconds: number;
+  longBreakSeconds: number;
+  sessionCount: number;
+}
+
+export interface PomodoroStatRow {
+  date: string;
+  tasksAdded: number;
+  tasksCompleted: number;
+  focusSeconds: number;
+  shortBreakSeconds: number;
+  longBreakSeconds: number;
+  score: number;
+}
+
+export const pomodoroApi = {
+  record: (payload: {
+    mode: PomodoroMode;
+    startedAt: string;
+    endedAt: string;
+    completed?: boolean;
+  }): Promise<{ success: boolean; skipped?: boolean; session?: PomodoroSession }> =>
+    request("/pomodoro/sessions", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  today: (): Promise<PomodoroToday> => request("/pomodoro/today"),
+
+  sessions: (params?: { date?: string }): Promise<{ date: string; sessions: PomodoroSession[] }> => {
+    const query = new URLSearchParams();
+    if (params?.date) query.set("date", params.date);
+    const suffix = query.size ? `?${query.toString()}` : "";
+    return request(`/pomodoro/sessions${suffix}`);
+  },
+
+  stats: (days = 14): Promise<{ days: number; rows: PomodoroStatRow[] }> =>
+    request(`/pomodoro/stats?days=${days}`),
+};
+
+// =========================
 // MEMORIES (Log aktivitas dari bot Telegram / AI)
 // =========================
 

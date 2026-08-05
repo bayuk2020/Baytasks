@@ -1,12 +1,14 @@
 /* eslint-disable prettier/prettier */
-import { Sun, Moon, Command, Clock, Flame } from "lucide-react";
+import { Sun, Moon, Command, Clock, Flame, Menu } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { computeStreak } from "@/lib/momentum";
 import { NotificationBell } from "./NotificationCenter";
+import { PomodoroWidget } from "./PomodoroWidget";
 import { useState, useEffect, useMemo } from "react";
 
-export function Topbar({ onOpenPalette }: {
+export function Topbar({ onOpenPalette, onOpenSidebar }: {
   onOpenPalette?: () => void;
+  onOpenSidebar?: () => void;
 }) {
   const { theme, toggleTheme, tasks } = useStore();
 
@@ -44,6 +46,15 @@ export function Topbar({ onOpenPalette }: {
   return (
     <header className="sticky top-0 z-30 glass-strong border-b border-border">
       <div className="flex items-center gap-3 px-5 py-3">
+        {/* HAMBURGER -- hanya di mobile, buka Sidebar sebagai drawer */}
+        <button
+          onClick={onOpenSidebar}
+          className="md:hidden h-9 w-9 grid place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary transition"
+          aria-label="Buka menu"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
+
         {/* QUICK PALETTE BUTTON (search sepenuhnya lewat Command Palette) */}
         <div className="flex-1" />
         <button
@@ -54,6 +65,9 @@ export function Topbar({ onOpenPalette }: {
           <span>Quick find</span>
           <kbd className="ml-1 text-[10px] px-1.5 py-0.5 rounded border border-border">⌘K</kbd>
         </button>
+
+        {/* POMODORO -- kontrol global, timer jalan terus di semua halaman */}
+        <PomodoroWidget />
 
         {/* =========================================================
             STREAK DURATION BOX (ORANGE NEON LOOK)
