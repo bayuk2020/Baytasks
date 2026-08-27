@@ -20,7 +20,7 @@ import { useDroppable } from "@dnd-kit/core";
 
 import { TaskCard } from "./TaskCard";
 
-import { Plus } from "lucide-react";
+import { Plus, Eye, EyeOff } from "lucide-react";
 
 import { motion } from "framer-motion";
 
@@ -109,16 +109,31 @@ export function KanbanBoard({ search = "" }: { search?: string }) {
 
   const [createCol, setCreateCol] = useState<ColumnId | null>(null);
 
+  // Task yang ditandai `hidden` (lihat TaskModal) disembunyikan dari papan
+  // secara default -- riwayatnya tetap utuh di Activity Log/Daily Log
+  // halaman Calendar, cuma tidak lagi memenuhi kolom Done di sini.
+  const [showHidden, setShowHidden] = useState(false);
+
   // =========================
   // FILTER
   // =========================
 
+  const boardTasks = useMemo(
+    () => tasks.filter((t) => t.boardId === activeBoardId),
+    [tasks, activeBoardId],
+  );
+
+  const hiddenCount = useMemo(
+    () => boardTasks.filter((t) => t.hidden).length,
+    [boardTasks],
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    return tasks
+    return boardTasks
 
-      .filter((t) => t.boardId === activeBoardId)
+      .filter((t) => showHidden || !t.hidden)
 
       .filter(
         (t) =>
@@ -126,7 +141,7 @@ export function KanbanBoard({ search = "" }: { search?: string }) {
           t.title.toLowerCase().includes(q) ||
           t.tags.some((tag) => tag.toLowerCase().includes(q)),
       );
-  }, [tasks, activeBoardId, search]);
+  }, [boardTasks, search, showHidden]);
 
   // =========================
   // GROUPED
@@ -250,6 +265,24 @@ export function KanbanBoard({ search = "" }: { search?: string }) {
 
   return (
     <>
+      {hiddenCount > 0 && (
+        <div className="px-1 pb-2">
+          <button
+            onClick={() => setShowHidden((v) => !v)}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition"
+          >
+            {showHidden ? (
+              <EyeOff className="h-3.5 w-3.5" />
+            ) : (
+              <Eye className="h-3.5 w-3.5" />
+            )}
+            {showHidden
+              ? `Sembunyikan ${hiddenCount} task tersembunyi`
+              : `Tampilkan ${hiddenCount} task tersembunyi`}
+          </button>
+        </div>
+      )}
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}

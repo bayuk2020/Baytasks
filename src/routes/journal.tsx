@@ -363,6 +363,21 @@ function Editor({
       if (ref.current) {
         debouncedSave({ content: ref.current.innerHTML });
       }
+      return;
+    }
+
+    // Klik di link: buka linknya, JANGAN taruh kursor edit di situ. Default
+    // browser di area contentEditable selalu memprioritaskan menempatkan
+    // kursor untuk mengedit, bukan mengikuti href -- makanya klik link
+    // selama ini terasa seperti "masuk mode edit" padahal itu memang
+    // perilaku bawaan contentEditable, bukan bug di tempat lain.
+    const link = target.closest("a");
+    if (link && ref.current?.contains(link)) {
+      const href = link.getAttribute("href");
+      if (href) {
+        e.preventDefault();
+        window.open(href, "_blank", "noopener,noreferrer");
+      }
     }
   };
 

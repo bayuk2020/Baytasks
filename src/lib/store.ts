@@ -141,6 +141,9 @@ export interface Task {
   createdAt: number;
   completedAt?: number;
   order: number;
+  // Sembunyikan dari papan Kanban tanpa menghapus riwayatnya -- Activity Log
+  // & Daily Log di halaman Calendar sengaja tidak ikut memfilter ini.
+  hidden?: boolean;
 }
 export interface Board {
   id: string;
@@ -726,6 +729,7 @@ loadHabits: async () => {
         recurring: patch.recurring,
         completed_at: patch.completedAt ? new Date(patch.completedAt).toISOString() : null,
         position: patch.order,
+        hidden: patch.hidden,
       });
       toast.success("Task updated successfully");
     } catch (err) {

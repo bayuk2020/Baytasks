@@ -19,6 +19,7 @@ import {
   FileText,
   Activity,
   Check,
+  EyeOff,
 } from "lucide-react";
 
 const PRIORITIES: Priority[] = ["low", "med", "high", "urgent"];
@@ -96,6 +97,8 @@ export function TaskModal({
 
   const [column, setColumn] = useState<ColumnId>(existing?.column ?? createInColumn ?? "todo");
 
+  const [hidden, setHidden] = useState(existing?.hidden ?? false);
+
   const [notes, setNotes] = useState(existing?.notes ?? "");
 
   const [newSub, setNewSub] = useState("");
@@ -150,6 +153,7 @@ export function TaskModal({
         column,
         notes,
         reminded: false,
+        hidden,
       });
 
       if (column === "done" && existing.column !== "done") {
@@ -619,7 +623,14 @@ export function TaskModal({
               <Field label="Status">
                 <select
                   value={column}
-                  onChange={(e) => setColumn(e.target.value as ColumnId)}
+                  onChange={(e) => {
+                    const next = e.target.value as ColumnId;
+                    setColumn(next);
+                    // Keluar dari "Done" -> "hidden" jadi tidak relevan lagi,
+                    // dan checkbox-nya juga hilang dari form, jadi nilainya
+                    // dipulihkan supaya tidak diam-diam tersimpan true.
+                    if (next !== "done") setHidden(false);
+                  }}
                   className="w-full bg-secondary/60 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
                 >
                   {COLUMNS.map((c) => (
@@ -629,6 +640,21 @@ export function TaskModal({
                   ))}
                 </select>
               </Field>
+
+              {/* HIDDEN -- cuma relevan begitu task selesai, jadi disembunyikan
+                  kalau statusnya belum "Done" supaya form tidak berisik */}
+              {column === "done" && (
+                <label className="flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={hidden}
+                    onChange={(e) => setHidden(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <EyeOff className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="flex-1">Sembunyikan dari papan Kanban</span>
+                </label>
+              )}
 
               {/* PRIORITY */}
 

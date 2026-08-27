@@ -17,6 +17,8 @@ import {
   ChevronRight,
   Clock,
   Sparkles,
+  ListTree,
+  EyeOff,
 } from "lucide-react";
 
 import {
@@ -29,7 +31,10 @@ import {
 
 import {
   memoryApi,
+  activityLogApi,
   type Memory,
+  type ActivityRange,
+  type ActivityLogEntry,
 } from "@/lib/api";
 
 // Format tanggal LOKAL (bukan toISOString() yang UTC -- bisa geser tanggal
@@ -115,6 +120,50 @@ function CalendarPage() {
       cancelled = true;
     };
   }, [selectedDate]);
+
+  // =========================
+  // ACTIVITY LOG (Task/Subtask lintas board -- terpisah dari Daily Log
+  // di atas, tapi sumbernya sama-sama perubahan Task, jadi keduanya
+  // saling melengkapi)
+  // =========================
+
+  const [activityRange, setActivityRange] = useState<ActivityRange>("today");
+  const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingActivity(true);
+
+    activityLogApi
+      .list({ range: activityRange, date: toLocalDateStr(selectedDate) })
+      .then((res) => {
+        if (!cancelled) setActivityLogs(res.logs);
+      })
+      .catch((error) => {
+        console.error(error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingActivity(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // `selectedDate` sengaja ikut jadi dependency -- range "day" mengikuti
+    // tanggal yang sedang dipilih di grid kalender di atas, persis seperti
+    // Daily Log. Range lain (today/week/month/year/last_year) tidak
+    // terpengaruh tanggal yang dipilih (lihat ActivityLogController::resolveRange).
+  }, [activityRange, selectedDate]);
+
+  const ACTIVITY_RANGES: { id: ActivityRange; label: string }[] = [
+    { id: "today", label: "Hari ini" },
+    { id: "day", label: "Pilih tanggal" },
+    { id: "week", label: "Minggu ini" },
+    { id: "month", label: "Bulan ini" },
+    { id: "year", label: "Tahun ini" },
+    { id: "last_year", label: "Tahun kemarin" },
+  ];
 
   // =========================
   // CALENDAR CELLS
@@ -873,6 +922,102 @@ function CalendarPage() {
                     {m.content}
                   </p>
                 )}
+              </li>
+            ))}
+          </ol>
+        )}
+      </motion.div>
+
+      {/* ========================= */}
+      {/* ACTIVITY LOG (Task/Subtask lintas board) */}
+      {/* ========================= */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass rounded-3xl p-6 border border-border/40"
+      >
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <ListTree className="h-4 w-4 text-violet-300" />
+            <h2 className="text-sm font-semibold tracking-tight">
+              Activity Log
+              {activityRange === "day" && (
+                <>
+                  {" — "}
+                  {selectedDate.toLocaleDateString(undefined, {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })}
+                </>
+              )}
+            </h2>
+          </div>
+
+          {/* FILTER RENTANG */}
+          <div className="flex flex-wrap gap-1.5">
+            {ACTIVITY_RANGES.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => setActivityRange(r.id)}
+                className={`text-[11px] px-2.5 py-1 rounded-lg border transition ${
+                  activityRange === r.id
+                    ? "border-violet-400/40 bg-violet-500/15 text-violet-100"
+                    : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {activityRange === "day" && (
+          <p className="text-[11px] text-muted-foreground -mt-2 mb-4">
+            Klik tanggal di kalender di atas untuk ganti tanggal yang ditampilkan di sini.
+          </p>
+        )}
+
+        {loadingActivity ? (
+          <div className="text-center text-sm text-muted-foreground py-8">Memuat activity log…</div>
+        ) : activityLogs.length === 0 ? (
+          <div className="text-center text-sm text-muted-foreground py-8">
+            Belum ada aktivitas task pada rentang ini.
+          </div>
+        ) : (
+          <ol className="relative border-l border-border pl-5 space-y-4 max-h-[420px] overflow-y-auto pr-1">
+            {activityLogs.map((a) => (
+              <li key={a.id} className="relative">
+                <span className="absolute -left-[25px] top-1 h-3 w-3 rounded-full bg-violet-400 shadow-[0_0_10px_rgba(167,139,250,0.6)]" />
+                <button
+                  onClick={() => setOpenId(String(a.taskId))}
+                  className="text-left w-full group"
+                >
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span>
+                      {a.occurredAt
+                        ? new Date(a.occurredAt).toLocaleString(undefined, {
+                            day: "numeric",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "—"}
+                    </span>
+                    {a.taskHidden && (
+                      <span
+                        title="Task ini disembunyikan dari papan Kanban"
+                        className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-secondary text-muted-foreground"
+                      >
+                        <EyeOff className="h-2.5 w-2.5" /> hidden
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm font-medium mt-0.5 group-hover:text-violet-300 transition">
+                    {a.taskTitle}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{a.text}</p>
+                </button>
               </li>
             ))}
           </ol>

@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { Task, Priority } from "@/lib/store";
-import { Calendar, MessageSquare, Paperclip, ListChecks } from "lucide-react";
+import { Calendar, MessageSquare, Paperclip, ListChecks, EyeOff } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
@@ -35,10 +35,17 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) =>
       {...listeners}
       layout
       onClick={() => onOpen(task.id)}
-      className="group cursor-grab active:cursor-grabbing rounded-xl glass hover-lift p-3 select-none"
+      className={`group cursor-grab active:cursor-grabbing rounded-xl glass hover-lift p-3 select-none ${
+        task.hidden ? "opacity-60" : ""
+      }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <h4 className="text-sm font-medium leading-snug text-foreground/95">{task.title}</h4>
+        <h4 className="text-sm font-medium leading-snug text-foreground/95 inline-flex items-center gap-1.5">
+          {task.hidden && (
+            <EyeOff className="h-3 w-3 shrink-0 text-muted-foreground" aria-label="Disembunyikan" />
+          )}
+          {task.title}
+        </h4>
         <span
           className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-md border uppercase tracking-wider ${priorityClass[task.priority]}`}
         >

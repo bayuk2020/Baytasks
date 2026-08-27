@@ -745,6 +745,37 @@ export const memoryApi = {
 };
 
 // =========================
+// ACTIVITY LOG (timeline Task/Subtask lintas board -- seksi Calendar)
+// =========================
+
+export type ActivityRange = "today" | "day" | "week" | "month" | "year" | "last_year";
+
+export interface ActivityLogEntry {
+  id: number;
+  taskId: number;
+  taskTitle: string;
+  taskHidden: boolean;
+  text: string;
+  occurredAt: number | null;
+}
+
+export interface ActivityLogResponse {
+  range: ActivityRange;
+  from: string;
+  to: string;
+  count: number;
+  logs: ActivityLogEntry[];
+}
+
+export const activityLogApi = {
+  list: (params: { range: ActivityRange; date?: string }): Promise<ActivityLogResponse> => {
+    const query = new URLSearchParams({ range: params.range });
+    if (params.date) query.set("date", params.date);
+    return request(`/activity-log?${query.toString()}`);
+  },
+};
+
+// =========================
 // STORY (Personal Facebook Feed)
 // =========================
 
