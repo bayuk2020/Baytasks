@@ -623,14 +623,7 @@ export function TaskModal({
               <Field label="Status">
                 <select
                   value={column}
-                  onChange={(e) => {
-                    const next = e.target.value as ColumnId;
-                    setColumn(next);
-                    // Keluar dari "Done" -> "hidden" jadi tidak relevan lagi,
-                    // dan checkbox-nya juga hilang dari form, jadi nilainya
-                    // dipulihkan supaya tidak diam-diam tersimpan true.
-                    if (next !== "done") setHidden(false);
-                  }}
+                  onChange={(e) => setColumn(e.target.value as ColumnId)}
                   className="w-full bg-secondary/60 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
                 >
                   {COLUMNS.map((c) => (
@@ -640,21 +633,6 @@ export function TaskModal({
                   ))}
                 </select>
               </Field>
-
-              {/* HIDDEN -- cuma relevan begitu task selesai, jadi disembunyikan
-                  kalau statusnya belum "Done" supaya form tidak berisik */}
-              {column === "done" && (
-                <label className="flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={hidden}
-                    onChange={(e) => setHidden(e.target.checked)}
-                    className="h-4 w-4 rounded border-border accent-primary"
-                  />
-                  <EyeOff className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <span className="flex-1">Sembunyikan dari papan Kanban</span>
-                </label>
-              )}
 
               {/* PRIORITY */}
 
@@ -728,6 +706,41 @@ export function TaskModal({
                   placeholder="design, frontend"
                   className="w-full bg-secondary/60 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
                 />
+              </Field>
+
+              {/* SEMBUNYIKAN -- toggle, bukan checkbox, dan SELALU tampil
+                  (tidak lagi cuma saat status Done) supaya task apa pun bisa
+                  disembunyikan dari papan tanpa harus diselesaikan dulu.
+                  Kiri = mati, kanan = hidup. */}
+              <Field label="Sembunyikan" icon={<EyeOff className="h-3.5 w-3.5" />}>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={hidden}
+                  onClick={() => setHidden((v) => !v)}
+                  className="w-full flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-left hover:border-primary/30 transition"
+                >
+                  <span className="text-sm">
+                    {hidden ? "Disembunyikan dari papan" : "Tampil di papan"}
+                  </span>
+
+                  <span
+                    className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+                      hidden ? "bg-primary" : "bg-border"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+                        hidden ? "left-[1.125rem]" : "left-0.5"
+                      }`}
+                    />
+                  </span>
+                </button>
+
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Tetap tercatat di Activity Log halaman Calendar, hanya tidak
+                  muncul di papan Kanban.
+                </p>
               </Field>
             </div>
           </div>

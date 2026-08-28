@@ -748,30 +748,50 @@ export const memoryApi = {
 // ACTIVITY LOG (timeline Task/Subtask lintas board -- seksi Calendar)
 // =========================
 
-export type ActivityRange = "today" | "day" | "week" | "month" | "year" | "last_year";
+export type TaskStatus = "backlog" | "todo" | "in_progress" | "review" | "done";
 
-export interface ActivityLogEntry {
+/**
+ * Satu baris di tabel "Activity Log" halaman Calendar = satu TASK yang pernah
+ * dibuat (bukan baris audit trail). Task ber-`hidden` tetap ikut dikirim --
+ * `hidden` cuma menyembunyikan dari papan Kanban.
+ */
+export interface ActivityTask {
   id: number;
-  taskId: number;
-  taskTitle: string;
-  taskHidden: boolean;
-  text: string;
-  occurredAt: number | null;
+  title: string;
+  boardId: number;
+  boardName: string;
+  boardEmoji: string | null;
+  column: TaskStatus;
+  priority: "low" | "med" | "high" | "urgent";
+  hidden: boolean;
+  createdAt: number | null;
+  dueAt: number | null;
+  completedAt: number | null;
+  subtaskTotal: number;
+  subtaskDone: number;
 }
 
 export interface ActivityLogResponse {
-  range: ActivityRange;
   from: string;
   to: string;
+  statuses: TaskStatus[];
   count: number;
-  logs: ActivityLogEntry[];
+  tasks: ActivityTask[];
 }
 
 export const activityLogApi = {
-  list: (params: { range: ActivityRange; date?: string }): Promise<ActivityLogResponse> => {
-    const query = new URLSearchParams({ range: params.range });
-    if (params.date) query.set("date", params.date);
-    return request(`/activity-log?${query.toString()}`);
+  /** Rentang mengacu ke TANGGAL TASK DIBUAT (bukan deadline). */
+  list: (params: {
+    from?: string;
+    to?: string;
+    statuses?: TaskStatus[];
+  }): Promise<ActivityLogResponse> => {
+    const query = new URLSearchParams();
+    if (params.from) query.set("from", params.from);
+    if (params.to) query.set("to", params.to);
+    if (params.statuses?.length) query.set("status", params.statuses.join(","));
+    const suffix = query.size ? `?${query.toString()}` : "";
+    return request(`/activity-log${suffix}`);
   },
 };
 

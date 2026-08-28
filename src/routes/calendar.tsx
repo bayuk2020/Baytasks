@@ -19,6 +19,10 @@ import {
   Sparkles,
   ListTree,
   EyeOff,
+  Plus,
+  Flag,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 
 import {
@@ -33,9 +37,14 @@ import {
   memoryApi,
   activityLogApi,
   type Memory,
-  type ActivityRange,
-  type ActivityLogEntry,
+  type TaskStatus,
+  type ActivityTask,
 } from "@/lib/api";
+
+import {
+  exportActivityPdf,
+  exportActivityExcel,
+} from "@/lib/activityReport";
 
 // Format tanggal LOKAL (bukan toISOString() yang UTC -- bisa geser tanggal
 // kalau timezone user di belakang UTC) untuk dikirim sebagai query ?date=.
@@ -67,10 +76,21 @@ export const Route =
 
 function CalendarPage() {
 
-  const {
-    tasks,
-    activeBoardId,
-  } = useStore();
+  // Grid & tabel di halaman ini menampilkan task dari SEMUA board -- jadi
+  // `activeBoardId` TIDAK dipakai untuk memfilter. Ia hanya dipakai untuk
+  // memberi tahu tombol "Tambah Task" akan menaruh task barunya di board
+  // mana (TaskModal selalu membuat task di board yang sedang aktif).
+  const { tasks, loadTasks, boards, activeBoardId } = useStore();
+
+  const activeBoardName =
+    boards.find((b) => b.id === activeBoardId)?.name ?? "board aktif";
+
+  // BUG LAMA: halaman ini tidak pernah memuat task sendiri, jadi kalau
+  // /calendar dibuka langsung (refresh / masuk dari URL), store masih kosong
+  // dan grid tampil tanpa satu pun task.
+  useEffect(() => {
+    loadTasks();
+  }, []);
 
   const [
     cursor,
@@ -92,6 +112,9 @@ function CalendarPage() {
     string | null
   >(null);
 
+  // Mode "buat task baru" di TaskModal (tanpa taskId).
+  const [creating, setCreating] = useState(false);
+
   // =========================
   // DAILY LOG / TIMELINE (Memories)
   // =========================
@@ -99,6 +122,12 @@ function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loadingMemories, setLoadingMemories] = useState(true);
+
+  // Dinaikkan setiap TaskModal ditutup. Daily Log & tabel Activity Log
+  // mengambil datanya sendiri dari API (bukan dari store zustand), jadi tanpa
+  // pemicu ini task yang baru dibuat/diedit lewat modal tidak akan muncul
+  // sampai halaman di-refresh manual.
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,7 +148,7 @@ function CalendarPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDate]);
+  }, [selectedDate, refreshKey]);
 
   // =========================
   // ACTIVITY LOG (Task/Subtask lintas board -- terpisah dari Daily Log
@@ -127,8 +156,15 @@ function CalendarPage() {
   // saling melengkapi)
   // =========================
 
-  const [activityRange, setActivityRange] = useState<ActivityRange>("today");
-  const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>([]);
+  // Rentang default: bulan berjalan.
+  const [rangeFrom, setRangeFrom] = useState(() =>
+    toLocalDateStr(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+  );
+  const [rangeTo, setRangeTo] = useState(() =>
+    toLocalDateStr(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)),
+  );
+  const [statusFilter, setStatusFilter] = useState<TaskStatus[]>([]);
+  const [activityTasks, setActivityTasks] = useState<ActivityTask[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
 
   useEffect(() => {
@@ -136,9 +172,9 @@ function CalendarPage() {
     setLoadingActivity(true);
 
     activityLogApi
-      .list({ range: activityRange, date: toLocalDateStr(selectedDate) })
+      .list({ from: rangeFrom, to: rangeTo, statuses: statusFilter })
       .then((res) => {
-        if (!cancelled) setActivityLogs(res.logs);
+        if (!cancelled) setActivityTasks(res.tasks);
       })
       .catch((error) => {
         console.error(error);
@@ -150,19 +186,69 @@ function CalendarPage() {
     return () => {
       cancelled = true;
     };
-    // `selectedDate` sengaja ikut jadi dependency -- range "day" mengikuti
-    // tanggal yang sedang dipilih di grid kalender di atas, persis seperti
-    // Daily Log. Range lain (today/week/month/year/last_year) tidak
-    // terpengaruh tanggal yang dipilih (lihat ActivityLogController::resolveRange).
-  }, [activityRange, selectedDate]);
+  }, [rangeFrom, rangeTo, statusFilter, refreshKey]);
 
-  const ACTIVITY_RANGES: { id: ActivityRange; label: string }[] = [
-    { id: "today", label: "Hari ini" },
-    { id: "day", label: "Pilih tanggal" },
-    { id: "week", label: "Minggu ini" },
+  const toggleStatus = (s: TaskStatus) =>
+    setStatusFilter((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
+    );
+
+  // Tombol pintas yang MENGISI kolom tanggal (bukan menggantikannya) --
+  // rentangnya tetap terbaca jelas di input, itu yang bikin lebih informatif
+  // ketimbang preset buta.
+  const applyPreset = (preset: "month" | "last_month" | "year" | "last_year" | "7d" | "30d") => {
+    const now = new Date();
+    let from: Date;
+    let to: Date;
+
+    switch (preset) {
+      case "month":
+        from = new Date(now.getFullYear(), now.getMonth(), 1);
+        to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        break;
+      case "last_month":
+        from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        to = new Date(now.getFullYear(), now.getMonth(), 0);
+        break;
+      case "year":
+        from = new Date(now.getFullYear(), 0, 1);
+        to = new Date(now.getFullYear(), 11, 31);
+        break;
+      case "last_year":
+        from = new Date(now.getFullYear() - 1, 0, 1);
+        to = new Date(now.getFullYear() - 1, 11, 31);
+        break;
+      case "7d":
+        from = new Date(now);
+        from.setDate(now.getDate() - 6);
+        to = now;
+        break;
+      case "30d":
+        from = new Date(now);
+        from.setDate(now.getDate() - 29);
+        to = now;
+        break;
+    }
+
+    setRangeFrom(toLocalDateStr(from));
+    setRangeTo(toLocalDateStr(to));
+  };
+
+  const STATUS_META: { id: TaskStatus; label: string; dot: string }[] = [
+    { id: "backlog", label: "Backlog", dot: "bg-slate-400" },
+    { id: "todo", label: "To Do", dot: "bg-sky-400" },
+    { id: "in_progress", label: "In Progress", dot: "bg-amber-400" },
+    { id: "review", label: "Review", dot: "bg-violet-400" },
+    { id: "done", label: "Done", dot: "bg-emerald-400" },
+  ];
+
+  const PRESETS: { id: Parameters<typeof applyPreset>[0]; label: string }[] = [
+    { id: "7d", label: "7 hari" },
+    { id: "30d", label: "30 hari" },
     { id: "month", label: "Bulan ini" },
+    { id: "last_month", label: "Bulan lalu" },
     { id: "year", label: "Tahun ini" },
-    { id: "last_year", label: "Tahun kemarin" },
+    { id: "last_year", label: "Tahun lalu" },
   ];
 
   // =========================
@@ -246,52 +332,38 @@ function CalendarPage() {
   // TASKS BY DAY
   // =========================
 
-  const tasksByDay =
-    useMemo(() => {
+  // Tiap sel kalender bisa menampung dua jenis penanda untuk task yang sama:
+  //  - "created": tanggal task DIBUAT (abu-abu, penanda lingkaran kosong)
+  //  - "due"    : tanggal DEADLINE (berwarna sesuai prioritas / merah kalau lewat)
+  // Lintas SEMUA board, bukan cuma board yang sedang aktif.
+  type DayMarker = { task: (typeof tasks)[number]; kind: "created" | "due" };
 
-      const m =
-        new Map<
-          string,
-          typeof tasks
-        >();
+  const markersByDay = useMemo(() => {
+    const m = new Map<string, DayMarker[]>();
 
-      for (
+    const push = (key: string, marker: DayMarker) => {
+      const arr = m.get(key) ?? [];
+      arr.push(marker);
+      m.set(key, arr);
+    };
 
-        const t of tasks.filter(
-
-          (x) =>
-
-            x.boardId ===
-              activeBoardId &&
-
-            x.dueAt
-        )
-      ) {
-
-        const k =
-          new Date(
-            t.dueAt!
-          ).toDateString();
-
-        const arr =
-          m.get(k) ?? [];
-
-        arr.push(t);
-
-        m.set(
-          k,
-          arr
-        );
+    for (const t of tasks) {
+      if (t.createdAt) {
+        push(new Date(t.createdAt).toDateString(), { task: t, kind: "created" });
       }
+      if (t.dueAt) {
+        push(new Date(t.dueAt).toDateString(), { task: t, kind: "due" });
+      }
+    }
 
-      return m;
+    // Deadline ditaruh di atas dalam satu sel -- itu yang lebih mendesak
+    // dilihat ketimbang "hari ini aku bikin task apa".
+    for (const arr of m.values()) {
+      arr.sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "due" ? -1 : 1));
+    }
 
-    }, [
-
-      tasks,
-
-      activeBoardId,
-    ]);
+    return m;
+  }, [tasks]);
 
   // =========================
   // MONTH LABEL
@@ -688,7 +760,7 @@ function CalendarPage() {
 
               c.date
 
-                ? tasksByDay.get(
+                ? markersByDay.get(
                     c.date.toDateString()
                   ) ?? []
 
@@ -785,7 +857,7 @@ function CalendarPage() {
 
                       {items
                         .slice(0, 3)
-                        .map((t) => {
+                        .map(({ task: t, kind }) => {
 
                           const overdue = t.dueAt && t.dueAt < Date.now() && t.column !== "done";
 
@@ -793,23 +865,31 @@ function CalendarPage() {
 
                             <button
 
-                              key={t.id}
+                              key={`${t.id}-${kind}`}
 
-                              onClick={() =>
-                                setOpenId(
-                                  t.id
-                                )
+                              onClick={(e) => {
+                                // Jangan sampai klik kartu ikut memindahkan
+                                // tanggal terpilih di sel induknya.
+                                e.stopPropagation();
+                                setOpenId(t.id);
+                              }}
+
+                              title={
+                                kind === "created"
+                                  ? `Dibuat: ${t.title}`
+                                  : `Deadline: ${t.title}`
                               }
 
                               className={`
-                                block
+                                flex
+                                items-center
+                                gap-1
+
                                 w-full
 
                                 text-left
 
                                 text-[11px]
-
-                                truncate
 
                                 rounded-lg
 
@@ -823,21 +903,34 @@ function CalendarPage() {
                                 hover:scale-[1.02]
 
                                 ${
-                                  overdue
+                                  kind === "created"
 
                                     ? `
-                                      border-red-400/20
-                                      bg-red-500/10
-                                      text-red-200
+                                      border-border
+                                      bg-secondary/40
+                                      text-muted-foreground
                                     `
 
-                                    : priorityClass(
-                                        t.priority
-                                      )
+                                    : overdue
+
+                                      ? `
+                                        border-red-400/20
+                                        bg-red-500/10
+                                        text-red-200
+                                      `
+
+                                      : priorityClass(
+                                          t.priority
+                                        )
                                 }
                               `}
                             >
-                              {t.title}
+                              {kind === "created" ? (
+                                <Plus className="h-2.5 w-2.5 shrink-0 opacity-70" />
+                              ) : (
+                                <Flag className="h-2.5 w-2.5 shrink-0 opacity-70" />
+                              )}
+                              <span className="truncate">{t.title}</span>
                             </button>
                           );
                         })}
@@ -864,6 +957,23 @@ function CalendarPage() {
               </motion.div>
             );
           })}
+        </div>
+
+        {/* LEGENDA -- dua penanda beda arti, tanpa ini gampang salah baca */}
+        <div className="mt-4 flex flex-wrap items-center gap-4 px-1 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary/40 px-1.5 py-0.5">
+              <Plus className="h-2.5 w-2.5 opacity-70" />
+            </span>
+            Tanggal task dibuat
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-md border border-cyan-400/30 bg-cyan-500/10 px-1.5 py-0.5">
+              <Flag className="h-2.5 w-2.5 opacity-70 text-cyan-100" />
+            </span>
+            Deadline (warna mengikuti prioritas, merah kalau lewat)
+          </span>
+          <span className="ml-auto">Semua board</span>
         </div>
       </motion.div>
 
@@ -929,98 +1039,236 @@ function CalendarPage() {
       </motion.div>
 
       {/* ========================= */}
-      {/* ACTIVITY LOG (Task/Subtask lintas board) */}
+      {/* ACTIVITY LOG -- daftar task yang pernah dibuat, lintas semua board */}
       {/* ========================= */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="glass rounded-3xl p-6 border border-border/40"
       >
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            <ListTree className="h-4 w-4 text-violet-300" />
-            <h2 className="text-sm font-semibold tracking-tight">
-              Activity Log
-              {activityRange === "day" && (
-                <>
-                  {" — "}
-                  {selectedDate.toLocaleDateString(undefined, {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                  })}
-                </>
-              )}
-            </h2>
+        <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <ListTree className="h-4 w-4 text-violet-300" />
+              <h2 className="text-sm font-semibold tracking-tight">Activity Log</h2>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Task yang kamu buat pada rentang tanggal ini — semua board, termasuk yang
+              sudah selesai maupun disembunyikan dari papan.
+            </p>
           </div>
 
-          {/* FILTER RENTANG */}
+          <div className="text-[11px] text-muted-foreground">
+            {loadingActivity ? "…" : `${activityTasks.length} task`}
+          </div>
+        </div>
+
+        {/* FILTER: rentang tanggal */}
+        <div className="flex flex-wrap items-end gap-3 mb-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Dari tanggal dibuat
+            </span>
+            <input
+              type="date"
+              value={rangeFrom}
+              onChange={(e) => setRangeFrom(e.target.value)}
+              className="rounded-lg border border-border bg-secondary/40 px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Sampai
+            </span>
+            <input
+              type="date"
+              value={rangeTo}
+              onChange={(e) => setRangeTo(e.target.value)}
+              className="rounded-lg border border-border bg-secondary/40 px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring"
+            />
+          </label>
+
           <div className="flex flex-wrap gap-1.5">
-            {ACTIVITY_RANGES.map((r) => (
+            {PRESETS.map((p) => (
               <button
-                key={r.id}
-                onClick={() => setActivityRange(r.id)}
-                className={`text-[11px] px-2.5 py-1 rounded-lg border transition ${
-                  activityRange === r.id
-                    ? "border-violet-400/40 bg-violet-500/15 text-violet-100"
-                    : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
-                }`}
+                key={p.id}
+                onClick={() => applyPreset(p.id)}
+                className="text-[11px] px-2.5 py-1.5 rounded-lg border border-border bg-secondary/40 text-muted-foreground hover:text-foreground hover:border-violet-400/30 transition"
               >
-                {r.label}
+                {p.label}
               </button>
             ))}
           </div>
         </div>
 
-        {activityRange === "day" && (
-          <p className="text-[11px] text-muted-foreground -mt-2 mb-4">
-            Klik tanggal di kalender di atas untuk ganti tanggal yang ditampilkan di sini.
-          </p>
-        )}
+        {/* FILTER: status */}
+        <div className="flex flex-wrap items-center gap-1.5 mb-4">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">
+            Status
+          </span>
+          {STATUS_META.map((s) => {
+            const active = statusFilter.includes(s.id);
+            return (
+              <button
+                key={s.id}
+                onClick={() => toggleStatus(s.id)}
+                className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border transition ${
+                  active
+                    ? "border-violet-400/40 bg-violet-500/15 text-violet-100"
+                    : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+                {s.label}
+              </button>
+            );
+          })}
+          {statusFilter.length > 0 && (
+            <button
+              onClick={() => setStatusFilter([])}
+              className="text-[11px] px-2 py-1 text-muted-foreground hover:text-foreground underline underline-offset-2"
+            >
+              reset
+            </button>
+          )}
+          {statusFilter.length === 0 && (
+            <span className="text-[10px] text-muted-foreground">(semua status)</span>
+          )}
+
+          {/* AKSI -- didorong ke ujung kanan baris filter */}
+          <div className="ml-auto flex items-center gap-1.5">
+            {/* Export mengikuti PERSIS data yang sedang tampil di tabel,
+                jadi apa pun yang difilter user itulah isi laporannya. */}
+            <button
+              onClick={() =>
+                exportActivityPdf(activityTasks, {
+                  from: rangeFrom,
+                  to: rangeTo,
+                  statuses: statusFilter,
+                })
+              }
+              disabled={loadingActivity || activityTasks.length === 0}
+              title="Unduh laporan PDF sesuai filter di atas"
+              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              PDF
+            </button>
+
+            <button
+              onClick={() =>
+                exportActivityExcel(activityTasks, {
+                  from: rangeFrom,
+                  to: rangeTo,
+                  statuses: statusFilter,
+                })
+              }
+              disabled={loadingActivity || activityTasks.length === 0}
+              title="Unduh laporan Excel sesuai filter di atas"
+              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              Excel
+            </button>
+
+            <button
+              onClick={() => setCreating(true)}
+              title={`Task baru akan masuk ke board "${activeBoardName}"`}
+              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/25 transition"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Tambah Task
+            </button>
+          </div>
+        </div>
 
         {loadingActivity ? (
-          <div className="text-center text-sm text-muted-foreground py-8">Memuat activity log…</div>
-        ) : activityLogs.length === 0 ? (
+          <div className="text-center text-sm text-muted-foreground py-8">Memuat daftar task…</div>
+        ) : activityTasks.length === 0 ? (
           <div className="text-center text-sm text-muted-foreground py-8">
-            Belum ada aktivitas task pada rentang ini.
+            Tidak ada task yang dibuat pada rentang ini.
           </div>
         ) : (
-          <ol className="relative border-l border-border pl-5 space-y-4 max-h-[420px] overflow-y-auto pr-1">
-            {activityLogs.map((a) => (
-              <li key={a.id} className="relative">
-                <span className="absolute -left-[25px] top-1 h-3 w-3 rounded-full bg-violet-400 shadow-[0_0_10px_rgba(167,139,250,0.6)]" />
-                <button
-                  onClick={() => setOpenId(String(a.taskId))}
-                  className="text-left w-full group"
-                >
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <span>
-                      {a.occurredAt
-                        ? new Date(a.occurredAt).toLocaleString(undefined, {
-                            day: "numeric",
-                            month: "short",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "—"}
-                    </span>
-                    {a.taskHidden && (
-                      <span
-                        title="Task ini disembunyikan dari papan Kanban"
-                        className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-secondary text-muted-foreground"
+          // Tabel dibungkus overflow-x sendiri supaya di layar sempit dia yang
+          // menggeser, bukan seluruh halaman melar ke samping.
+          <div className="overflow-x-auto -mx-6 px-6">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead>
+                <tr className="text-left text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-2 pr-3 font-medium">Task</th>
+                  <th className="py-2 px-3 font-medium">Board</th>
+                  <th className="py-2 px-3 font-medium">Dibuat</th>
+                  <th className="py-2 px-3 font-medium">Deadline</th>
+                  <th className="py-2 px-3 font-medium">Subtask</th>
+                  <th className="py-2 pl-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activityTasks.map((t) => {
+                  const meta = STATUS_META.find((s) => s.id === t.column);
+                  const overdue =
+                    t.dueAt && t.dueAt < Date.now() && t.column !== "done";
+
+                  return (
+                    <tr
+                      key={t.id}
+                      onClick={() => setOpenId(String(t.id))}
+                      className="border-b border-border/50 last:border-0 cursor-pointer hover:bg-secondary/30 transition"
+                    >
+                      <td className="py-2 pr-3">
+                        <div className="flex items-center gap-1.5">
+                          {t.hidden && (
+                            <EyeOff
+                              className="h-3 w-3 shrink-0 text-muted-foreground"
+                              aria-label="Disembunyikan dari papan"
+                            />
+                          )}
+                          <span className={t.column === "done" ? "text-muted-foreground" : ""}>
+                            {t.title}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-2 px-3 whitespace-nowrap text-xs text-muted-foreground">
+                        {t.boardEmoji} {t.boardName}
+                      </td>
+                      <td className="py-2 px-3 whitespace-nowrap text-xs text-muted-foreground">
+                        {t.createdAt
+                          ? new Date(t.createdAt).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </td>
+                      <td
+                        className={`py-2 px-3 whitespace-nowrap text-xs ${
+                          overdue ? "text-rose-300" : "text-muted-foreground"
+                        }`}
                       >
-                        <EyeOff className="h-2.5 w-2.5" /> hidden
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-sm font-medium mt-0.5 group-hover:text-violet-300 transition">
-                    {a.taskTitle}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{a.text}</p>
-                </button>
-              </li>
-            ))}
-          </ol>
+                        {t.dueAt
+                          ? new Date(t.dueAt).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </td>
+                      <td className="py-2 px-3 whitespace-nowrap text-xs text-muted-foreground tabular-nums">
+                        {t.subtaskTotal > 0 ? `${t.subtaskDone}/${t.subtaskTotal}` : "—"}
+                      </td>
+                      <td className="py-2 pl-3 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-md border border-border bg-secondary/50">
+                          <span className={`h-1.5 w-1.5 rounded-full ${meta?.dot ?? "bg-slate-400"}`} />
+                          {meta?.label ?? t.column}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </motion.div>
 
@@ -1028,17 +1276,23 @@ function CalendarPage() {
       {/* TASK MODAL */}
       {/* ========================= */}
 
-      {openId && (
+      {(openId || creating) && (
 
         <TaskModal
 
-          taskId={openId}
+          taskId={openId ?? undefined}
 
-          onClose={() =>
-            setOpenId(
-              null
-            )
-          }
+          // Task baru dari halaman ini default-nya masuk kolom "To Do";
+          // kolomnya masih bisa diganti di dropdown Status dalam modal.
+          createInColumn={creating ? "todo" : undefined}
+
+          onClose={() => {
+            setOpenId(null);
+            setCreating(false);
+            // Daily Log & tabel Activity Log menarik datanya sendiri dari
+            // API, jadi harus dipicu ulang supaya perubahan langsung terlihat.
+            setRefreshKey((k) => k + 1);
+          }}
         />
       )}
     </div>
