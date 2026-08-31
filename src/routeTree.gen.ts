@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as StoryRouteImport } from './routes/story'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PomodoroRouteImport } from './routes/pomodoro'
+import { Route as MindmapRouteImport } from './routes/mindmap'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as IndexoldRouteImport } from './routes/indexold'
@@ -50,6 +51,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const PomodoroRoute = PomodoroRouteImport.update({
   id: '/pomodoro',
   path: '/pomodoro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MindmapRoute = MindmapRouteImport.update({
+  id: '/mindmap',
+  path: '/mindmap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryRoute = LibraryRouteImport.update({
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/indexold': typeof IndexoldRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
+  '/mindmap': typeof MindmapRoute
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
   '/story': typeof StoryRoute
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   '/indexold': typeof IndexoldRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
+  '/mindmap': typeof MindmapRoute
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
   '/story': typeof StoryRoute
@@ -242,6 +250,7 @@ export interface FileRoutesById {
   '/indexold': typeof IndexoldRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
+  '/mindmap': typeof MindmapRoute
   '/pomodoro': typeof PomodoroRoute
   '/settings': typeof SettingsRoute
   '/story': typeof StoryRoute
@@ -273,6 +282,7 @@ export interface FileRouteTypes {
     | '/indexold'
     | '/journal'
     | '/library'
+    | '/mindmap'
     | '/pomodoro'
     | '/settings'
     | '/story'
@@ -301,6 +311,7 @@ export interface FileRouteTypes {
     | '/indexold'
     | '/journal'
     | '/library'
+    | '/mindmap'
     | '/pomodoro'
     | '/settings'
     | '/story'
@@ -330,6 +341,7 @@ export interface FileRouteTypes {
     | '/indexold'
     | '/journal'
     | '/library'
+    | '/mindmap'
     | '/pomodoro'
     | '/settings'
     | '/story'
@@ -360,6 +372,7 @@ export interface RootRouteChildren {
   IndexoldRoute: typeof IndexoldRoute
   JournalRoute: typeof JournalRoute
   LibraryRoute: typeof LibraryRoute
+  MindmapRoute: typeof MindmapRoute
   PomodoroRoute: typeof PomodoroRoute
   SettingsRoute: typeof SettingsRoute
   StoryRoute: typeof StoryRoute
@@ -391,6 +404,13 @@ declare module '@tanstack/react-router' {
       path: '/pomodoro'
       fullPath: '/pomodoro'
       preLoaderRoute: typeof PomodoroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mindmap': {
+      id: '/mindmap'
+      path: '/mindmap'
+      fullPath: '/mindmap'
+      preLoaderRoute: typeof MindmapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library': {
@@ -602,6 +622,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexoldRoute: IndexoldRoute,
   JournalRoute: JournalRoute,
   LibraryRoute: LibraryRoute,
+  MindmapRoute: MindmapRoute,
   PomodoroRoute: PomodoroRoute,
   SettingsRoute: SettingsRoute,
   StoryRoute: StoryRoute,

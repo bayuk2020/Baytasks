@@ -745,6 +745,94 @@ export const memoryApi = {
 };
 
 // =========================
+// MIND MAP (pohon topik & task, opsional tertaut ke task papan)
+// =========================
+
+export type MindMapNodeType = "topic" | "task";
+
+export interface MindMapNode {
+  id: number;
+  parentId: number | null;
+  type: MindMapNodeType;
+  title: string;
+  done: boolean;
+  collapsed: boolean;
+  position: number;
+  taskId: number | null;
+  linkedTask: { id: number; title: string; column: string; boardId: number } | null;
+  children: MindMapNode[];
+}
+
+export interface MindMapSummary {
+  id: number;
+  title: string;
+  description: string | null;
+  nodeCount: number;
+  updatedAt: number | null;
+}
+
+export interface MindMapDetail {
+  id: number;
+  title: string;
+  description: string | null;
+  updatedAt: number | null;
+  nodes: MindMapNode[];
+}
+
+export const mindMapApi = {
+  list: (): Promise<MindMapSummary[]> => request("/mind-maps"),
+
+  create: (payload: { title: string; description?: string }): Promise<MindMapDetail> =>
+    request("/mind-maps", { method: "POST", body: JSON.stringify(payload) }),
+
+  get: (id: number): Promise<MindMapDetail> => request(`/mind-maps/${id}`),
+
+  update: (id: number, payload: { title?: string; description?: string }): Promise<MindMapDetail> =>
+    request(`/mind-maps/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+
+  remove: (id: number) => request(`/mind-maps/${id}`, { method: "DELETE" }),
+
+  addNode: (payload: {
+    mind_map_id: number;
+    parent_id?: number | null;
+    type: MindMapNodeType;
+    title: string;
+  }): Promise<{ success: boolean; node: MindMapNode }> =>
+    request("/mind-map-nodes", { method: "POST", body: JSON.stringify(payload) }),
+
+  updateNode: (
+    id: number,
+    payload: { title?: string; done?: boolean; collapsed?: boolean; type?: MindMapNodeType },
+  ): Promise<{ success: boolean; node: MindMapNode }> =>
+    request(`/mind-map-nodes/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+
+  removeNode: (id: number) => request(`/mind-map-nodes/${id}`, { method: "DELETE" }),
+
+  /**
+   * Pindahkan node (drag & drop). `position` = indeks 0-based di antara calon
+   * saudaranya SETELAH node ini dikeluarkan dari posisi lamanya.
+   */
+  moveNode: (
+    id: number,
+    payload: { parent_id: number | null; position?: number },
+  ): Promise<{ success: boolean; node: MindMapNode }> =>
+    request(`/mind-map-nodes/${id}/move`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  /** Tautkan ke task papan yang ada (task_id) ATAU buat task baru (board_id). */
+  linkNode: (
+    id: number,
+    payload: { task_id?: number; board_id?: string | number },
+  ): Promise<{ success: boolean; node: MindMapNode }> =>
+    request(`/mind-map-nodes/${id}/link`, { method: "POST", body: JSON.stringify(payload) }),
+
+  unlinkNode: (id: number): Promise<{ success: boolean; node: MindMapNode }> =>
+    request(`/mind-map-nodes/${id}/link`, { method: "DELETE" }),
+};
+
+// =========================
 // ACTIVITY LOG (timeline Task/Subtask lintas board -- seksi Calendar)
 // =========================
 
@@ -758,6 +846,8 @@ export type TaskStatus = "backlog" | "todo" | "in_progress" | "review" | "done";
 export interface ActivityTask {
   id: number;
   title: string;
+  description: string | null;
+  notes: string | null;
   boardId: number;
   boardName: string;
   boardEmoji: string | null;
@@ -769,6 +859,8 @@ export interface ActivityTask {
   completedAt: number | null;
   subtaskTotal: number;
   subtaskDone: number;
+  subtasks: { id: number; title: string; done: boolean }[];
+  attachments: { id: number; name: string; url: string }[];
 }
 
 export interface ActivityLogResponse {

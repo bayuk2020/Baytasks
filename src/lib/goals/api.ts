@@ -1,4 +1,6 @@
+// eslint-disable-next-line prettier/prettier
 import { Goal, Milestone } from "./store";
+
 
 const BASE_URL = "https://api.kabyra.my.id/api";
 

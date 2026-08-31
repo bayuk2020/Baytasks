@@ -16,6 +16,7 @@ import {
   GripVertical,
   Camera,
   X,
+  Network,
   Home, CheckSquare, List, Target
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -26,6 +27,7 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/board", label: "Boards", icon: KanbanSquare },
   { to: "/goals", label: "Goals", icon: Target },
+  { to: "/mindmap", label: "Mind Map", icon: Network },
   { to: "/habits", label: "Habits", icon: Flame },
   { to: "/journal", label: "Journal", icon: NotebookPen },
   { to: "/story", label: "Story", icon: Camera },
