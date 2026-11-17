@@ -199,14 +199,57 @@ function normalizeTransactions(items: any[]): Transaction[] {
   }));
 }
 
-// TransactionController::index() sekarang paginate(50) di backend. Banyak fitur (filter
-// & search transaksi, rekap total, export Excel, statistik Overview, "spent" di Budget)
-// masih butuh SELURUH riwayat transaksi di client, jadi di sini kita tarik semua halaman
-// lalu digabung — request per halaman jadi kecil & murah, tapi fitur lama tetap utuh.
+// Banyak fitur (filter & search transaksi, rekap total, export Excel, statistik
+// Overview, "spent" di Budget) butuh SELURUH riwayat transaksi di client.
+//
+// Versi lama memenuhi itu dengan menembak page 1, lalu SEMUA halaman sisanya
+// sekaligus lewat Promise.all — dengan 1100+ transaksi itu ~23 request HTTP paralel.
+// Origin API (`php artisan serve`) hanya melayani satu request pada satu waktu,
+// jadi ke-23 request itu mengantre: ~10 detik hanya untuk memuat transaksi, dan
+// lewat Cloudflare Tunnel sebagian di antaranya kena timeout → 502.
+//
+// Sekarang: satu request borongan (`?all=1`). Jalur paginasi dipertahankan sebagai
+// fallback kalau backend belum di-deploy, tapi dengan batas konkurensi supaya tidak
+// pernah lagi membanjiri origin.
+const PAGE_FETCH_CONCURRENCY = 4;
+
+async function fetchPagesBounded(lastPage: number): Promise<any[]> {
+  const items: any[] = [];
+  let next = 2;
+
+  const workers = Array.from({ length: Math.min(PAGE_FETCH_CONCURRENCY, Math.max(lastPage - 1, 0)) }, async () => {
+    for (;;) {
+      const page = next++;
+      if (page > lastPage) return;
+      const res = await transactionApi.getAll(page);
+      items.push(...(Array.isArray(res) ? res : (res?.data || [])));
+    }
+  });
+
+  await Promise.all(workers);
+  return items;
+}
+
 async function fetchAllTransactionPages(): Promise<{ items: any[]; meta?: { current_page: number; last_page: number } }> {
+  try {
+    const bulk = await transactionApi.getAllBulk();
+
+    if (Array.isArray(bulk)) {
+      return { items: bulk, meta: undefined };
+    }
+    if (bulk?.data) {
+      return {
+        items: bulk.data,
+        meta: { current_page: bulk.current_page ?? 1, last_page: bulk.last_page ?? 1 },
+      };
+    }
+  } catch (error) {
+    // Backend lama belum mengenal ?all=1 → turun ke jalur paginasi.
+    console.warn("[finance] bulk transactions gagal, fallback ke paginasi:", error);
+  }
+
   const first = await transactionApi.getAll(1);
   if (Array.isArray(first)) {
-    // Fallback kalau backend suatu saat balik lagi mengembalikan array polos.
     return { items: first, meta: undefined };
   }
 
@@ -214,15 +257,50 @@ async function fetchAllTransactionPages(): Promise<{ items: any[]; meta?: { curr
   const lastPage: number = first.last_page || 1;
 
   if (lastPage > 1) {
-    const restPages = await Promise.all(
-      Array.from({ length: lastPage - 1 }, (_, i) => transactionApi.getAll(i + 2))
-    );
-    for (const page of restPages) {
-      items.push(...(Array.isArray(page) ? page : (page.data || [])));
-    }
+    items.push(...(await fetchPagesBounded(lastPage)));
   }
 
   return { items, meta: { current_page: first.current_page ?? 1, last_page: lastPage } };
+}
+
+// Beberapa route Finance memanggil loadAll()/loadTransactions() pada mount yang
+// hampir bersamaan (mis. Overview lalu langsung pindah tab). Tanpa penjaga ini,
+// tiap mount memulai pengambilan penuh lagi. Satu promise in-flight dibagi ke
+// semua pemanggil, dan hasil yang baru saja diambil dipakai ulang sebentar.
+type TransactionsResult = { items: any[]; meta?: { current_page: number; last_page: number } };
+
+let inflightTransactions: Promise<TransactionsResult> | null = null;
+let cachedTransactions: TransactionsResult | null = null;
+let lastTransactionsFetchAt = 0;
+const TRANSACTIONS_TTL_MS = 15_000;
+
+function fetchTransactionsShared(force = false): Promise<TransactionsResult> {
+  if (!force) {
+    if (inflightTransactions) return inflightTransactions;
+    if (cachedTransactions && Date.now() - lastTransactionsFetchAt < TRANSACTIONS_TTL_MS) {
+      return Promise.resolve(cachedTransactions);
+    }
+  }
+
+  const promise = fetchAllTransactionPages()
+    .then((result) => {
+      cachedTransactions = result;
+      lastTransactionsFetchAt = Date.now();
+      return result;
+    })
+    .finally(() => {
+      inflightTransactions = null;
+    });
+
+  inflightTransactions = promise;
+  return promise;
+}
+
+/** Dipanggil setelah mutasi: data di server sudah berubah, cache wajib basi. */
+function invalidateTransactionsCache() {
+  cachedTransactions = null;
+  lastTransactionsFetchAt = 0;
+  inflightTransactions = null;
 }
 
 export const useFinanceStore = create<FinanceState>((set) => ({
@@ -251,7 +329,7 @@ export const useFinanceStore = create<FinanceState>((set) => ({
   },
 
   loadTransactions: async () => {
-    const { items, meta } = await fetchAllTransactionPages();
+    const { items, meta } = await fetchTransactionsShared();
     const normalized = normalizeTransactions(items);
     set({
       transactions: normalized,
@@ -268,7 +346,7 @@ export const useFinanceStore = create<FinanceState>((set) => ({
   loadAccountsAndAllTransactions: async () => {
     // Helper internal untuk refresh massal data transaksi & akun
     const [{ items, meta }, accountsRes] = await Promise.all([
-      fetchAllTransactionPages(),
+      fetchTransactionsShared(),
       accountApi.getAll(),
     ]);
 
@@ -298,7 +376,7 @@ export const useFinanceStore = create<FinanceState>((set) => ({
   loadAll: async () => {
     const [accounts, { items, meta }, incomeSources, contacts, budgets, debts, trades, categoriesRes] = await Promise.all([
       accountApi.getAll(),
-      fetchAllTransactionPages(),
+      fetchTransactionsShared(),
       incomeSourceApi.getAll(),
       contactApi.getAll(),
       budgetApi.getAll(),
@@ -358,56 +436,81 @@ export const useFinanceStore = create<FinanceState>((set) => ({
     });
   },
 
-  /* ---- transactions (SINKRON DENGAN GRAFIK ALLTRANSACTIONS) ---- */
+  /* ---- transactions (SINKRON DENGAN GRAFIK ALLTRANSACTIONS) ----
+   *
+   * Dulu setiap mutasi menarik ULANG seluruh riwayat transaksi (~23 request) plus
+   * daftar akun — jadi "simpan satu transaksi" berarti 24 request HTTP dan ~10 detik
+   * menunggu. Padahal server sudah mengembalikan baris hasilnya di response mutasi.
+   *
+   * Sekarang state transaksi ditambal langsung dari response itu, dan satu-satunya
+   * request tambahan adalah refresh akun (saldonya memang dihitung di server oleh
+   * applyBalance/reverseBalance, jadi tidak boleh ditebak di client). Total: 2 request.
+   */
   addTransaction: async (payload) => {
-    await transactionApi.create(payload);
-    // Refresh massal agar balance akun ikut ter-update instan
-    const [{ items, meta }, accountsRes] = await Promise.all([
-      fetchAllTransactionPages(),
-      accountApi.getAll(),
-    ]);
-    const normalized = normalizeTransactions(items);
+    const created = await transactionApi.create(payload);
+    const accountsRes = await accountApi.getAll();
+    const [normalizedNew] = normalizeTransactions([created]);
+    invalidateTransactionsCache();
 
-    set({
-      transactions: normalized,
-      allTransactions: normalized, // REAKTIF KE GRAFIK ANALISIS
-      transactionMeta: meta,
-      accounts: accountsRes,
-      accountMap: Object.fromEntries(accountsRes.map((a: Account) => [a.id, a]))
+    set((s) => {
+      // Backend memakai firstOrCreate, jadi id yang sama bisa dikirim ulang saat
+      // import — pakai upsert, bukan push, supaya tidak muncul baris kembar.
+      const exists = s.transactions.some((t) => t.id === normalizedNew.id);
+      const merge = (list: Transaction[]) =>
+        exists ? list.map((t) => (t.id === normalizedNew.id ? normalizedNew : t)) : [normalizedNew, ...list];
+
+      return {
+        transactions: merge(s.transactions),
+        allTransactions: merge(s.allTransactions),
+        accounts: accountsRes,
+        accountMap: Object.fromEntries(accountsRes.map((a: Account) => [a.id, a])),
+      };
     });
   },
 
   updateTransaction: async (id, payload) => {
-    await transactionApi.update(id, payload);
-    const [{ items, meta }, accountsRes] = await Promise.all([
-      fetchAllTransactionPages(),
-      accountApi.getAll(),
-    ]);
-    const normalized = normalizeTransactions(items);
+    const updated = await transactionApi.update(id, payload);
+    const accountsRes = await accountApi.getAll();
+    const [normalizedUpdated] = normalizeTransactions([updated]);
+    invalidateTransactionsCache();
 
-    set({
-      transactions: normalized,
-      allTransactions: normalized, // REAKTIF KE GRAFIK ANALISIS
-      transactionMeta: meta,
-      accounts: accountsRes,
-      accountMap: Object.fromEntries(accountsRes.map((a: Account) => [a.id, a]))
+    set((s) => {
+      // updateTransfer() di backend bisa mengembalikan baris dengan id berbeda dari
+      // yang diminta (kaki "out" dari grup transfer), jadi cocokkan keduanya.
+      const replace = (list: Transaction[]) =>
+        list.map((t) => (t.id === id || t.id === normalizedUpdated.id ? normalizedUpdated : t));
+
+      return {
+        transactions: replace(s.transactions),
+        allTransactions: replace(s.allTransactions),
+        accounts: accountsRes,
+        accountMap: Object.fromEntries(accountsRes.map((a: Account) => [a.id, a])),
+      };
     });
   },
 
   removeTransaction: async (id) => {
-    await transactionApi.remove(id);
-    const [{ items, meta }, accountsRes] = await Promise.all([
-      fetchAllTransactionPages(),
-      accountApi.getAll(),
-    ]);
-    const normalized = normalizeTransactions(items);
+    const target =
+      useFinanceStore.getState().allTransactions.find((t) => t.id === id) ??
+      useFinanceStore.getState().transactions.find((t) => t.id === id);
 
-    set({
-      transactions: normalized,
-      allTransactions: normalized, // REAKTIF KE GRAFIK ANALISIS
-      transactionMeta: meta,
-      accounts: accountsRes,
-      accountMap: Object.fromEntries(accountsRes.map((a: Account) => [a.id, a]))
+    await transactionApi.remove(id);
+    const accountsRes = await accountApi.getAll();
+    invalidateTransactionsCache();
+
+    set((s) => {
+      // Menghapus satu kaki transfer menghapus SELURUH grupnya di backend,
+      // jadi state lokal harus ikut membuang semua anggota grup itu.
+      const groupId = target?.transferGroupId;
+      const drop = (t: Transaction) => (groupId ? t.transferGroupId === groupId : t.id === id);
+      const purge = (list: Transaction[]) => list.filter((t) => !drop(t));
+
+      return {
+        transactions: purge(s.transactions),
+        allTransactions: purge(s.allTransactions),
+        accounts: accountsRes,
+        accountMap: Object.fromEntries(accountsRes.map((a: Account) => [a.id, a])),
+      };
     });
   },
 
@@ -493,8 +596,9 @@ export const useFinanceStore = create<FinanceState>((set) => ({
     const result = await debtApi.pay(p.debtId, p);
     // Backend juga memotong saldo Account & mencatat Transaction "Debt Payment",
     // jadi refresh keduanya biar Kanban saldo & ledger tetap sinkron dengan server.
+    invalidateTransactionsCache();
     const [{ items }, accountsRes] = await Promise.all([
-      fetchAllTransactionPages(),
+      fetchTransactionsShared(true),
       accountApi.getAll(),
     ]);
     const normalized = normalizeTransactions(items);

@@ -1,28 +1,101 @@
 /* eslint-disable prettier/prettier */
 const API = "https://api.kabyra.my.id/api";
 
+// Origin di balik Cloudflare Tunnel sesekali membalas 502/503/504 atau menggantung.
+// Tanpa timeout, fetch() browser menunggu tanpa batas — itulah kenapa modul Finance
+// bisa "loading" selamanya tanpa pesan error apa pun. Batas waktu + retry membuat
+// kegagalan sesaat pulih sendiri, dan kegagalan nyata muncul sebagai error, bukan spinner.
+const REQUEST_TIMEOUT_MS = 20_000;
+const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+const MAX_RETRIES = 2;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Error yang membawa status HTTP supaya pemanggil bisa membedakan 422 dari 502. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+async function readError(res: Response): Promise<ApiError> {
+  const text = await res.text().catch(() => "");
+
+  try {
+    const parsed = JSON.parse(text) as {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+    const validationMessage = parsed.errors ? Object.values(parsed.errors).flat()[0] : undefined;
+    return new ApiError(validationMessage || parsed.message || `API ERROR (${res.status})`, res.status);
+  } catch {
+    // Body bukan JSON — biasanya halaman error HTML dari Cloudflare/Apache.
+    // Jangan tumpahkan HTML-nya ke toast; cukup status yang bisa dibaca manusia.
+    const fallback =
+      res.status === 502 || res.status === 503 || res.status === 504
+        ? "Server API sedang tidak merespons. Coba lagi sebentar."
+        : `API ERROR (${res.status})`;
+    return new ApiError(text && text.length < 200 ? text : fallback, res.status);
+  }
+}
+
 async function request(endpoint: string, options?: RequestInit) {
-  const res = await fetch(`${API}${endpoint}`, {
-    headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
-    ...options,
-  });
-  if (!res.ok) {
-    const text = await res.text();
+  const method = (options?.method || "GET").toUpperCase();
+  // Hanya request baca yang di-retry otomatis. POST/PATCH/DELETE tidak idempoten,
+  // mengulangnya berisiko membuat data ganda.
+  const retries = method === "GET" ? MAX_RETRIES : 0;
+
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
     try {
-      const error = JSON.parse(text) as {
-        message?: string;
-        errors?: Record<string, string[]>;
-      };
-      const validationMessage = error.errors ? Object.values(error.errors).flat()[0] : undefined;
-      throw new Error(validationMessage || error.message || "API ERROR");
-    } catch (error) {
-      if (error instanceof SyntaxError) {
-        throw new Error(text || "API ERROR");
+      const res = await fetch(`${API}${endpoint}`, {
+        ...options,
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
+      });
+
+      if (!res.ok) {
+        const error = await readError(res);
+        if (attempt < retries && RETRYABLE_STATUS.has(res.status)) {
+          lastError = error;
+          await sleep(400 * 2 ** attempt);
+          continue;
+        }
+        throw error;
       }
-      throw error;
+
+      return await res.json();
+    } catch (error) {
+      // Error aplikasi (4xx/validasi) jangan di-retry — langsung lempar.
+      if (error instanceof ApiError && !RETRYABLE_STATUS.has(error.status ?? 0)) {
+        throw error;
+      }
+
+      lastError = error;
+
+      const isAbort = error instanceof DOMException && error.name === "AbortError";
+      if (attempt >= retries) {
+        if (isAbort) {
+          throw new ApiError(`Request ke ${endpoint} timeout setelah ${REQUEST_TIMEOUT_MS / 1000}s.`);
+        }
+        throw error instanceof Error ? error : new ApiError("API ERROR");
+      }
+
+      await sleep(400 * 2 ** attempt);
+    } finally {
+      clearTimeout(timer);
     }
   }
-  return res.json();
+
+  throw lastError instanceof Error ? lastError : new ApiError("API ERROR");
 }
 
 function transactionPayload(payload: any) {
@@ -106,6 +179,10 @@ export const accountApi = {
 
 export const transactionApi = {
   getAll: (page: number = 1) => request(`/finance/transactions?page=${page}`),
+  // Seluruh riwayat dalam SATU request. Menggantikan pola lama yang menembak
+  // ~23 request paginasi sekaligus ke origin yang hanya melayani satu request
+  // pada satu waktu (`php artisan serve`), jadi semuanya mengantre berurutan.
+  getAllBulk: () => request(`/finance/transactions?all=1`),
   create: (payload: any) =>
     request("/finance/transactions", {
       method: "POST",
