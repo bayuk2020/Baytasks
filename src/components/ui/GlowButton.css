@@ -209,3 +209,51 @@
 .glow-btn:hover .glow-sun {
   filter: brightness(1.4);
 }
+
+/* ===========================================================================
+   VARIAN TEMA TERANG
+   ---------------------------------------------------------------------------
+   Versi aslinya memakai latar slate-900 (rgba(15,23,42,.92)) dengan cahaya
+   cyan. Di atas kanvas terang hasilnya jadi kotak gelap yang terlihat seperti
+   elemen nyasar dari tema gelap, bukan tombol aksi utama.
+
+   Di sini tombolnya diubah jadi gradien biru pekat dengan teks putih — tetap
+   "menyala", tapi sebagai tombol primer yang jelas. Aura dan sparkle-nya
+   dikecilkan karena efek glow di latar terang cepat terlihat berlebihan.
+   =========================================================================== */
+.light .glow-btn {
+  border: 1px solid color-mix(in oklab, var(--neon) 55%, transparent);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--neon) 92%, white),
+    var(--neon)
+  );
+  backdrop-filter: none;
+  color: #ffffff;
+  box-shadow:
+    0 1px 2px -1px oklch(0.21 0.02 255 / 0.15),
+    0 10px 24px -12px color-mix(in oklab, var(--neon) 60%, transparent);
+}
+
+.light .glow-btn:hover {
+  border-color: color-mix(in oklab, var(--neon) 80%, transparent);
+  filter: brightness(1.06);
+  box-shadow:
+    0 2px 4px -2px oklch(0.21 0.02 255 / 0.18),
+    0 14px 30px -12px color-mix(in oklab, var(--neon) 70%, transparent);
+}
+
+.light .glow-sun {
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.1) 40%,
+    transparent 70%
+  );
+}
+
+.light .spark {
+  box-shadow:
+    0 0 6px rgba(255, 255, 255, 0.9),
+    0 0 10px rgba(255, 255, 255, 0.6);
+}

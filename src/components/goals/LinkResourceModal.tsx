@@ -41,17 +41,17 @@ export function LinkResourceModal({ goal, onClose }: { goal: any; onClose: () =>
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm p-4 text-white text-xs"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm p-4 text-foreground text-xs"
       onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 10 }}
-        className="border border-white/10 bg-[#121214] rounded-2xl w-full max-w-lg p-5 relative shadow-xl"
+        className="border border-border bg-[#121214] rounded-2xl w-full max-w-lg p-5 relative shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-sm inline-flex items-center gap-2"><Link2 className="h-4 w-4 text-sky-400" /> Link a resource</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-white bg-transparent border-0 cursor-pointer"><X className="h-4 w-4" /></button>
+          <h3 className="font-bold text-sm inline-flex items-center gap-2"><Link2 className="h-4 w-4 text-[var(--neon)]" /> Link a resource</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer"><X className="h-4 w-4" /></button>
         </div>
 
         <div className="flex flex-wrap gap-1.5 mb-4">
@@ -60,7 +60,7 @@ export function LinkResourceModal({ goal, onClose }: { goal: any; onClose: () =>
               key={t.id}
               onClick={() => setType(t.id)}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition border cursor-pointer bg-transparent ${
-                type === t.id ? "border-sky-500 text-sky-400 bg-sky-500/10" : "border-white/10 text-muted-foreground hover:text-white"
+                type === t.id ? "border-[var(--neon)] text-[var(--neon)] bg-[var(--neon-soft)]" : "border-border text-muted-foreground hover:text-foreground"
               }`}
             >
               {t.label}
@@ -79,11 +79,11 @@ export function LinkResourceModal({ goal, onClose }: { goal: any; onClose: () =>
                   onClick={() => pick(o.id, o.label)}
                   disabled={isLinked}
                   className={`w-full text-left flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-xs transition cursor-pointer ${
-                    isLinked ? "border-sky-500/40 bg-sky-500/5 text-muted-foreground cursor-not-allowed" : "border-white/5 bg-white/5 hover:border-sky-500/50"
+                    isLinked ? "border-[color-mix(in_oklab,var(--neon)_40%,transparent)] bg-[var(--neon-soft)] text-muted-foreground cursor-not-allowed" : "border-border bg-muted/50 hover:border-[color-mix(in_oklab,var(--neon)_55%,transparent)]"
                   }`}
                 >
                   <span className="truncate">{o.label}</span>
-                  {isLinked ? <span className="text-[10px] text-sky-400 font-bold">Linked</span> : <Plus className="h-4 w-4 shrink-0" />}
+                  {isLinked ? <span className="text-[10px] text-[var(--neon)] font-bold">Linked</span> : <Plus className="h-4 w-4 shrink-0" />}
                 </button>
               );
             })}
@@ -108,14 +108,14 @@ export function LinkResourceModal({ goal, onClose }: { goal: any; onClose: () =>
                 value={manualLabel}
                 onChange={(e) => setManualLabel(e.target.value)}
                 placeholder={`e.g. ${type === "debt" ? "Car loan" : type === "account" ? "Main savings" : "Reference name"}`}
-                className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-white outline-none focus:border-sky-500/50"
+                className="flex-1 rounded-lg bg-muted/50 border border-border px-3 py-1.5 text-xs text-foreground outline-none focus:border-[var(--neon)]"
               />
-              <button className="rounded-lg bg-sky-600 hover:bg-sky-500 text-white px-4 py-1.5 font-bold transition shadow-md border-0 cursor-pointer">Link</button>
+              <button className="rounded-lg bg-[var(--neon)] hover:brightness-110 text-white px-4 py-1.5 font-bold transition shadow-md border-0 cursor-pointer">Link</button>
             </div>
           </form>
         )}
 
-        <button onClick={onClose} className="mt-4 w-full rounded-lg border border-white/10 bg-transparent py-2 text-xs text-white hover:bg-white/5 transition cursor-pointer font-semibold">Done</button>
+        <button onClick={onClose} className="mt-4 w-full rounded-lg border border-border bg-transparent py-2 text-xs text-foreground hover:bg-accent transition cursor-pointer font-semibold">Done</button>
       </motion.div>
     </motion.div>
   );

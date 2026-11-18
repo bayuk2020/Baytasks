@@ -52,18 +52,18 @@ export function GoalsWidget() {
   const insight = focus ? generateInsights(focus, ctx)[0] : null;
 
   return (
-    <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="border border-white/5 bg-white/[0.01] rounded-2xl p-5 text-white text-xs">
+    <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="border border-border bg-card rounded-2xl p-5 text-foreground text-xs">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="font-bold inline-flex items-center gap-1.5 text-white/90"><Target className="h-4 w-4 text-sky-400" /> Goals Momentum</h2>
+          <h2 className="font-bold inline-flex items-center gap-1.5 text-foreground"><Target className="h-4 w-4 text-[var(--neon)]" /> Goals Momentum</h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">{active.length} aktif di ruang hidupmu.</p>
         </div>
-        <Link to="/goals" className="text-xs text-sky-400 hover:underline inline-flex items-center gap-1">Open <ArrowRight className="h-3 w-3" /></Link>
+        <Link to="/goals" className="text-xs text-[var(--neon)] hover:underline inline-flex items-center gap-1">Open <ArrowRight className="h-3 w-3" /></Link>
       </div>
 
       {top.length === 0 ? (
         <div className="py-8 text-center text-xs text-muted-foreground">
-          Belum ada target aktif. <Link to="/goals" className="text-sky-400 hover:underline">Buat baru →</Link>
+          Belum ada target aktif. <Link to="/goals" className="text-[var(--neon)] hover:underline">Buat baru →</Link>
         </div>
       ) : (
         <ul className="space-y-2.5">
@@ -72,7 +72,7 @@ export function GoalsWidget() {
             const area = LIFE_AREA_META_LOCAL[areaKey] || LIFE_AREA_META_LOCAL["career"];
             return (
               <li key={g.id}>
-                <Link to="/goals/$id" params={{ id: g.id.toString() }} className="block rounded-xl border border-white/5 bg-white/5 px-3 py-2.5 hover:border-white/10 transition">
+                <Link to="/goals/$id" params={{ id: g.id.toString() }} className="block rounded-xl border border-border bg-muted/50 px-3 py-2.5 hover:border-[color-mix(in_oklab,var(--neon)_35%,transparent)] transition">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold truncate inline-flex items-center gap-1.5">
                       <span>{area.emoji}</span>
@@ -82,7 +82,7 @@ export function GoalsWidget() {
                     <span className="text-xs font-bold shrink-0" style={{ color: area.color }}>{g.calculatedPct}%</span>
                   </div>
                   {/* Animasi progress bar ikut bergeser secara live */}
-                  <div className="mt-2 h-1.5 rounded-full bg-black/40 overflow-hidden">
+                  <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }} 
                       animate={{ width: `${g.calculatedPct}%` }} 
@@ -99,9 +99,9 @@ export function GoalsWidget() {
       )}
 
       {insight && focus && (
-        <div className="mt-4 rounded-xl border border-sky-500/20 bg-sky-950/20 px-3 py-2.5 shadow-[0_0_10px_rgba(14,165,233,0.1)]">
-          <span className="text-[9px] uppercase font-bold tracking-wider text-sky-400">AI Coach</span>
-          <p className="mt-1 text-xs leading-relaxed text-white/80 font-medium">{focus.title || focus.name}: {insight.text}</p>
+        <div className="mt-4 rounded-xl border border-[var(--neon)]/20 bg-[var(--neon-soft)] px-3 py-2.5 shadow-[0_0_10px_rgba(14,165,233,0.1)]">
+          <span className="text-[9px] uppercase font-bold tracking-wider text-[var(--neon)]">AI Coach</span>
+          <p className="mt-1 text-xs leading-relaxed text-foreground/80 font-medium">{focus.title || focus.name}: {insight.text}</p>
         </div>
       )}
     </motion.section>

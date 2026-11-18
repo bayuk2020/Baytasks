@@ -127,12 +127,7 @@ function BoardPage() {
                     text-3xl
                     font-bold
                     tracking-tight
-                    bg-gradient-to-r
-                    from-cyan-100
-                    via-cyan-300
-                    to-blue-400
-                    bg-clip-text
-                    text-transparent
+                    heading-gradient
                   "
                 >
                   {board?.name ?? "Select a board"}
@@ -142,7 +137,7 @@ function BoardPage() {
                   className="
                     h-5
                     w-5
-                    text-cyan-300
+                    text-[var(--neon)]
                   "
                 />
               </div>

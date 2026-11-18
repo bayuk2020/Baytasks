@@ -1039,6 +1039,23 @@ export const goalApi = {
       method: "DELETE",
     }),
 
+  /**
+   * Simpan urutan baru hasil drag & drop.
+   *
+   * Seluruh daftar satu goal dikirim sekaligus, bukan satu PATCH per baris:
+   * memindahkan satu tahapan menggeser posisi semua tahapan di bawahnya, jadi
+   * kalau dikirim satu-satu dan ada yang gagal di tengah, urutan di layar dan
+   * di database bisa berbeda. Backend menyimpannya dalam satu transaksi.
+   */
+  reorderMilestones: (goalId: string | number, ids: (string | number)[]) =>
+    request("/milestones/reorder", {
+      method: "POST",
+      body: JSON.stringify({
+        goal_id: Number(goalId),
+        ids: ids.map((id) => Number(id)),
+      }),
+    }),
+
   // =========================
   // SUB-MODUL QUARTERLY PLANS
   // =========================

@@ -712,7 +712,7 @@ function NodeRow({
               <button
                 onClick={unlink}
                 title="Lepas tautan dari papan"
-                className="h-6 w-6 grid place-items-center rounded text-cyan-300 hover:text-cyan-100 hover:bg-accent"
+                className="h-6 w-6 grid place-items-center rounded text-[var(--neon)] hover:brightness-125 hover:bg-accent"
               >
                 <Link2Off className="h-3.5 w-3.5" />
               </button>
@@ -720,7 +720,7 @@ function NodeRow({
               <button
                 onClick={linkToBoard}
                 title="Sambungkan ke papan Kanban"
-                className="h-6 w-6 grid place-items-center rounded text-muted-foreground hover:text-cyan-300 hover:bg-accent"
+                className="h-6 w-6 grid place-items-center rounded text-muted-foreground hover:text-[var(--neon)] hover:bg-accent"
               >
                 <Link2 className="h-3.5 w-3.5" />
               </button>

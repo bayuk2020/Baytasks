@@ -67,10 +67,10 @@ function PomodoroPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.08),transparent_35%)] pointer-events-none" />
         <div className="relative z-10">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight heading-gradient">
               Pomodoro
             </h1>
-            <Sparkles className="h-5 w-5 text-cyan-300" />
+            <Sparkles className="h-5 w-5 text-[var(--neon)]" />
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Timer tetap berjalan walau kamu pindah halaman — kontrolnya juga ada di header.
@@ -121,7 +121,7 @@ function PomodoroPage() {
               className={`text-5xl sm:text-6xl font-black tracking-tight tabular-nums ${
                 overtime
                   ? "text-rose-400"
-                  : "bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-400 bg-clip-text text-transparent"
+                  : "heading-gradient"
               }`}
             >
               {overtime ? "+" : ""}
@@ -255,7 +255,7 @@ function PomodoroPage() {
                   </td>
                   <td className="py-2 px-3 text-right tabular-nums">{row.tasksAdded}</td>
                   <td className="py-2 px-3 text-right tabular-nums">{row.tasksCompleted}</td>
-                  <td className="py-2 px-3 text-right tabular-nums text-cyan-300">
+                  <td className="py-2 px-3 text-right tabular-nums text-[var(--neon)]">
                     {formatDuration(row.focusSeconds)}
                   </td>
                   <td className="py-2 px-3 text-right tabular-nums text-muted-foreground">
@@ -312,7 +312,7 @@ function ModeButton({
       onClick={onClick}
       className={`px-4 py-2 rounded-2xl border flex items-center gap-2 transition ${
         active
-          ? "border-cyan-400/30 bg-cyan-500/15 text-cyan-100"
+          ? "border-[color-mix(in_oklab,var(--neon)_35%,transparent)] bg-cyan-500/15 text-cyan-100"
           : "border-border bg-secondary/30 hover:border-cyan-400/20"
       }`}
     >
@@ -339,7 +339,7 @@ function SettingCard({
         min={1}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-3 w-full rounded-2xl border border-border bg-secondary/30 px-4 py-3 outline-none focus:border-cyan-400/30"
+        className="mt-3 w-full rounded-2xl border border-border bg-secondary/30 px-4 py-3 outline-none focus:border-[color-mix(in_oklab,var(--neon)_35%,transparent)]"
       />
       <div className="mt-2 text-xs text-muted-foreground">Minutes</div>
     </div>

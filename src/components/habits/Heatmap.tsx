@@ -310,7 +310,7 @@ export function Heatmap() {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-sm bg-white/5 border border-white/10" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-muted/60 border border-border" />
             <span>Masa Depan</span>
           </div>
           <div className="flex items-center gap-1">

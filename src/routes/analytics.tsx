@@ -50,7 +50,7 @@ export const Route = createFileRoute("/analytics")({
 const RANGES = [7, 14, 30, 90] as const;
 
 const MODULE_META: Record<string, { label: string; icon: typeof Brain; color: string }> = {
-  tasks: { label: "Tasks", icon: CheckCircle2, color: "text-cyan-300" },
+  tasks: { label: "Tasks", icon: CheckCircle2, color: "text-[var(--neon)]" },
   focus: { label: "Focus", icon: Brain, color: "text-violet-300" },
   habits: { label: "Habits", icon: Flame, color: "text-orange-300" },
   finance: { label: "Finance", icon: Wallet, color: "text-emerald-300" },
@@ -154,10 +154,10 @@ function Analytics() {
         <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-400 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight heading-gradient">
                 Analytics
               </h1>
-              <Sparkles className="h-5 w-5 text-cyan-300" />
+              <Sparkles className="h-5 w-5 text-[var(--neon)]" />
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               Rekap seluruh modul BayTasks{data ? ` · ${shortDate(data.range.from)} – ${shortDate(data.range.to)}` : ""}
@@ -185,7 +185,7 @@ function Analytics() {
             <button
               onClick={exportJson}
               disabled={!data}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-cyan-400/20 bg-cyan-500/10 text-cyan-100 text-sm hover:bg-cyan-500/20 transition disabled:opacity-40"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-cyan-400/20 bg-[var(--neon-soft)] text-cyan-100 text-sm hover:bg-cyan-500/20 transition disabled:opacity-40"
             >
               <Download className="h-4 w-4" />
               Export
@@ -606,7 +606,7 @@ function KPI({
           <div className="mt-2 text-2xl md:text-3xl font-bold truncate">{value}</div>
           {sub && <div className="mt-1 text-[11px] text-muted-foreground truncate">{sub}</div>}
         </div>
-        <div className="h-11 w-11 shrink-0 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+        <div className="h-11 w-11 shrink-0 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
           {icon}
         </div>
       </div>

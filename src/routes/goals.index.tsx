@@ -134,10 +134,10 @@ const activeGoals = useMemo(() => {
   }, [liveGoals, milestones, plans, tasks, habitLogs, stats]);
 
   return (
-    <div className="space-y-7 relative text-white text-xs">
+    <div className="space-y-7 relative text-foreground text-xs">
       <div className="pointer-events-none absolute -top-24 right-1/4 h-80 w-80 rounded-full bg-cyan-500/10 blur-3xl" />
 
-      <header className="flex items-end justify-between flex-wrap gap-3 relative border-b border-white/5 pb-4">
+      <header className="flex items-end justify-between flex-wrap gap-3 relative border-b border-border pb-4">
         <div>
           <p className="text-xs text-muted-foreground">Vision → Goal → Milestone → Quarter → Task</p>
           <h1 className="text-2xl font-bold tracking-tight mt-1">
@@ -145,7 +145,7 @@ const activeGoals = useMemo(() => {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/goals/list" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 transition font-semibold">
+          <Link to="/goals/list" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border hover:bg-accent transition font-semibold">
             <BrowseList className="h-4 w-4" /> All Goals
           </Link>
           <Link to="/goals/create">
@@ -171,7 +171,7 @@ const activeGoals = useMemo(() => {
         <section className="lg:col-span-2 space-y-3">
           <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">My Goals Progress</h2>
           {activeGoals.length === 0 ? (
-            <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center bg-white/[0.01]">
+            <div className="border border-dashed border-border rounded-2xl p-10 text-center bg-card">
               <p className="text-muted-foreground">No active goals. Define your first vision.</p>
             </div>
           ) : (
@@ -184,9 +184,9 @@ const activeGoals = useMemo(() => {
         <div className="space-y-5">
           <AICoach insights={summaryInsights} title="AI Coach Summary" />
 
-          <section className="border border-white/5 bg-white/[0.01] rounded-2xl p-5">
+          <section className="border border-border bg-card rounded-2xl p-5">
             <h3 className="font-semibold mb-3 inline-flex items-center gap-2">
-              <Flag className="h-4 w-4 text-sky-400" /> Upcoming Milestones
+              <Flag className="h-4 w-4 text-[var(--neon)]" /> Upcoming Milestones
             </h3>
             {upcoming.length === 0 ? (
               <p className="text-xs text-muted-foreground py-4 text-center">No upcoming milestones.</p>
@@ -198,11 +198,11 @@ const activeGoals = useMemo(() => {
                   const overdue = m.dueAt && m.dueAt < Date.now();
                   return (
                     <li key={m.id}>
-                      <Link to="/goals/$id" params={{ id: goal.id.toString() }} className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/5 px-3 py-2 hover:border-white/10 transition">
+                      <Link to="/goals/$id" params={{ id: goal.id.toString() }} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/50 px-3 py-2 hover:border-[color-mix(in_oklab,var(--neon)_35%,transparent)] transition">
                         <div className="flex items-center gap-2 min-w-0">
                           <span>{area.emoji}</span>
                           <div className="min-w-0">
-                            <div className="font-semibold truncate text-white">{m.title || m.name}</div>
+                            <div className="font-semibold truncate text-foreground">{m.title || m.name}</div>
                             <div className="text-[10px] text-muted-foreground truncate">{goal.title || goal.name}</div>
                           </div>
                         </div>
@@ -220,7 +220,7 @@ const activeGoals = useMemo(() => {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5 relative">
-        <section className="lg:col-span-2 border border-white/5 bg-white/[0.01] rounded-2xl p-5">
+        <section className="lg:col-span-2 border border-border bg-card rounded-2xl p-5">
           <h3 className="font-semibold mb-4">Goals by Life Area</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {byArea.length === 0 ? (
@@ -229,13 +229,13 @@ const activeGoals = useMemo(() => {
               const meta = LIFE_AREA_META_LOCAL[areaName] || LIFE_AREA_META_LOCAL["career"];
               const avg = Math.round(liveGoals.filter((g: any) => (g.lifeArea || g.area?.name || "career").toLowerCase() === areaName).reduce((a: number, g: any) => a + g.livePct, 0) / count); 
               return (
-                <div key={areaName} className="rounded-xl border border-white/5 bg-white/5 p-4">
+                <div key={areaName} className="rounded-xl border border-border bg-muted/50 p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xl">{meta.emoji}</span>
                     <span className="text-[10px] text-muted-foreground">{count} target</span>
                   </div>
-                  <div className="mt-2 font-semibold text-white">{meta.label}</div>
-                  <div className="mt-3 h-1.5 rounded-full bg-black/40 overflow-hidden">
+                  <div className="mt-2 font-semibold text-foreground">{meta.label}</div>
+                  <div className="mt-3 h-1.5 rounded-full bg-secondary overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${avg}%` }} className="h-full rounded-full" style={{ background: meta.color }} />
                   </div>
                   <div className="mt-1.5 text-[10px] text-muted-foreground">{avg}% avg progress</div>
@@ -245,7 +245,7 @@ const activeGoals = useMemo(() => {
           </div>
         </section>
 
-        <section className="border border-white/5 bg-white/[0.01] rounded-2xl p-5">
+        <section className="border border-border bg-card rounded-2xl p-5">
           <h3 className="font-semibold mb-3">Recently Updated</h3>
           {recent.length === 0 ? (
             <p className="text-xs text-muted-foreground py-4 text-center">Nothing yet.</p>
@@ -256,9 +256,9 @@ const activeGoals = useMemo(() => {
                 const area = LIFE_AREA_META_LOCAL[areaKey] || LIFE_AREA_META_LOCAL["career"];
                 return (
                   <li key={g.id}>
-                    <Link to="/goals/$id" params={{ id: g.id.toString() }} className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 px-3 py-2 hover:border-white/10 transition">
+                    <Link to="/goals/$id" params={{ id: g.id.toString() }} className="flex items-center gap-3 rounded-xl border border-border bg-muted/50 px-3 py-2 hover:border-[color-mix(in_oklab,var(--neon)_35%,transparent)] transition">
                       <span>{area.emoji}</span>
-                      <span className="flex-1 font-semibold truncate text-white">{g.title || g.name}</span>
+                      <span className="flex-1 font-semibold truncate text-foreground">{g.title || g.name}</span>
                       <span className="text-xs font-bold" style={{ color: area.color }}>{g.livePct}%</span>
                     </Link>
                   </li>
@@ -274,9 +274,9 @@ const activeGoals = useMemo(() => {
 
 function KPI({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: React.ReactNode; accent?: boolean }) {
   return (
-    <motion.div className={`border border-white/5 bg-white/[0.02] rounded-2xl p-4 relative overflow-hidden ${accent ? "border-sky-500/30 neon-ring" : ""}`}>
+    <motion.div className={`border border-border bg-card rounded-2xl p-4 relative overflow-hidden ${accent ? "border-[var(--neon)]/30 neon-ring" : ""}`}>
       <div className="relative flex items-center gap-1.5 text-xs text-muted-foreground">{icon}{label}</div>
-      <div className={`relative mt-2 text-xl font-bold ${accent ? "text-sky-400" : "text-white"}`}>{value}</div>
+      <div className={`relative mt-2 text-xl font-bold ${accent ? "text-[var(--neon)]" : "text-foreground"}`}>{value}</div>
     </motion.div>
   );
 }

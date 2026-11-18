@@ -54,7 +54,7 @@ export function GoalCard({ goal, index = 0 }: { goal: any; index?: number }) {
       <Link
         to="/goals/$id"
         params={{ id: goal.id.toString() }}
-        className="group block border border-white/5 bg-white/[0.01] rounded-2xl p-5 relative overflow-hidden hover:border-white/10 transition text-xs text-white"
+        className="group block border border-border bg-card rounded-2xl p-5 relative overflow-hidden hover:border-[color-mix(in_oklab,var(--neon)_35%,transparent)] transition text-xs text-foreground"
       >
         <div
           className="pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full blur-2xl opacity-20"
@@ -64,11 +64,11 @@ export function GoalCard({ goal, index = 0 }: { goal: any; index?: number }) {
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-xl leading-none">{area.emoji}</span>
             <div className="min-w-0">
-              <div className="font-bold truncate text-white">{goal.title || goal.name}</div>
+              <div className="font-bold truncate text-foreground">{goal.title || goal.name}</div>
               <div className="text-[10px] text-muted-foreground">{area.label}</div>
             </div>
           </div>
-          <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${goal.completed || pct === 100 ? "bg-emerald-500/10 text-emerald-400" : "border border-sky-500/30 bg-sky-950/20 text-sky-400 shadow-[0_0_10px_rgba(14,165,233,0.1)]"}`}>
+          <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${goal.completed || pct === 100 ? "bg-emerald-500/10 text-emerald-400" : "border border-[var(--neon)]/30 bg-[var(--neon-soft)] text-[var(--neon)] shadow-[0_0_10px_rgba(14,165,233,0.1)]"}`}>
             {goal.completed || pct === 100 ? "Completed" : "Active"}
           </span>
         </div>
@@ -79,7 +79,7 @@ export function GoalCard({ goal, index = 0 }: { goal: any; index?: number }) {
             <span>{current} <span className="opacity-60">/ {target}</span></span>
             <span className="font-bold" style={{ color: area.color }}>{pct}%</span>
           </div>
-          <div className="h-2 rounded-full bg-black/40 overflow-hidden">
+          <div className="h-2 rounded-full bg-secondary overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${pct}%` }}
@@ -92,11 +92,11 @@ export function GoalCard({ goal, index = 0 }: { goal: any; index?: number }) {
 
         <div className="relative mt-4 flex items-center justify-between text-[10px] text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
-            <Flag className="h-3.5 w-3.5 text-sky-400" /> {msDone}/{ms.length} milestones
+            <Flag className="h-3.5 w-3.5 text-[var(--neon)]" /> {msDone}/{ms.length} milestones
           </span>
-          <span className="inline-flex items-center gap-1 font-semibold text-white/70">
+          <span className="inline-flex items-center gap-1 font-semibold text-muted-foreground">
             {dRem === null ? "No deadline" : dRem < 0 ? `${Math.abs(dRem)}d overdue` : `${dRem}d left`}
-            <ArrowUpRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition text-white" />
+            <ArrowUpRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition text-foreground" />
           </span>
         </div>
       </Link>

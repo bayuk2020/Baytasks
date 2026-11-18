@@ -74,7 +74,7 @@ export function PomodoroWidget() {
   // Warna mengikuti mode supaya sekilas lihat langsung tahu lagi fokus atau rehat.
   const accent = isBreak
     ? { text: "text-amber-300", ring: "border-amber-400/30", bg: "bg-amber-500/10" }
-    : { text: "text-cyan-300", ring: "border-cyan-400/30", bg: "bg-cyan-500/10" };
+    : { text: "text-[var(--neon)]", ring: "border-[color-mix(in_oklab,var(--neon)_35%,transparent)]", bg: "bg-[var(--neon-soft)]" };
 
   return (
     <div

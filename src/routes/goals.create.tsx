@@ -110,31 +110,31 @@ function CreateGoal() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 relative text-white text-xs">
+    <div className="max-w-2xl mx-auto space-y-6 relative text-foreground text-xs">
       <div className="pointer-events-none absolute -top-24 right-1/4 h-80 w-80 rounded-full bg-cyan-500/10 blur-3xl" />
 
-      <Link to="/goals" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-white transition relative">
+      <Link to="/goals" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition relative">
         <ArrowLeft className="h-4 w-4" /> Dashboard
       </Link>
 
       <header className="relative">
         <p className="text-xs text-muted-foreground inline-flex items-center gap-2">
-          <Target className="h-4 w-4 text-sky-400" /> New goal
+          <Target className="h-4 w-4 text-[var(--neon)]" /> New goal
         </p>
         <h1 className="text-3xl font-semibold tracking-tight mt-1">
           Design your next <span className="neon-text">milestone</span>
         </h1>
       </header>
 
-      <form onSubmit={submit} className="border border-white/5 bg-white/[0.01] rounded-2xl p-6 space-y-5 relative">
+      <form onSubmit={submit} className="border border-border bg-card rounded-2xl p-6 space-y-5 relative">
         <Field label="Goal name" required>
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Become debt free"
-            className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none focus:border-sky-500/50" />
+            className="w-full rounded-lg bg-muted/50 border border-border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-[var(--neon)]" />
         </Field>
 
         <Field label="Description">
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="What does success look like?"
-            className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none focus:border-sky-500/50 resize-none" />
+            className="w-full rounded-lg bg-muted/50 border border-border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-[var(--neon)] resize-none" />
         </Field>
 
         <Field label="Life area">
@@ -165,9 +165,9 @@ function CreateGoal() {
               return (
                 <button type="button" key={t} onClick={() => setType(t)}
                   className={`text-left rounded-xl border px-3 py-2.5 transition cursor-pointer bg-transparent ${
-                    active ? "border-sky-500 bg-sky-950/20 neon-ring" : "border-white/10 hover:border-white/20"
+                    active ? "border-[var(--neon)] bg-[var(--neon-soft)] neon-ring" : "border-border hover:border-[color-mix(in_oklab,var(--neon)_45%,transparent)]"
                   }`}>
-                  <div className={`text-xs font-bold ${active ? "text-sky-400" : "text-white"}`}>{meta.label}</div>
+                  <div className={`text-xs font-bold ${active ? "text-[var(--neon)]" : "text-foreground"}`}>{meta.label}</div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">{meta.hint}</div>
                 </button>
               );
@@ -181,14 +181,14 @@ function CreateGoal() {
           <Field label="Target"><NumInput value={targetValue} onChange={setTargetValue} /></Field>
           <Field label="Unit">
             <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="M, books…"
-              className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-white placeholder:text-white/20 outline-none focus:border-sky-500/50" />
+              className="w-full rounded-lg bg-muted/50 border border-border px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-[var(--neon)]" />
           </Field>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Target date">
             <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)}
-              className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-white outline-none focus:border-sky-500/50" />
+              className="w-full rounded-lg bg-muted/50 border border-border px-3 py-1.5 text-xs text-foreground outline-none focus:border-[var(--neon)]" />
           </Field>
           <Field label="Priority">
             <div className="flex gap-1.5">
@@ -199,7 +199,7 @@ function CreateGoal() {
                     className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold capitalize transition border cursor-pointer bg-transparent ${
                       isCurrent 
                         ? p.activeClass 
-                        : "border-white/10 text-muted-foreground hover:border-white/20"
+                        : "border-border text-muted-foreground hover:border-[color-mix(in_oklab,var(--neon)_45%,transparent)]"
                     }`}>
                     {p.label}
                   </button>
@@ -211,14 +211,14 @@ function CreateGoal() {
 
         <Field label="Notes">
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Optional notes…"
-            className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none focus:border-sky-500/50 resize-none" />
+            className="w-full rounded-lg bg-muted/50 border border-border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-[var(--neon)] resize-none" />
         </Field>
 
         <div className="flex items-center gap-2 pt-1">
-<button type="submit" className="px-5 py-2.5 rounded-lg border border-sky-500/50 bg-sky-950/20 text-sky-400 text-xs font-bold shadow-[0_0_10px_rgba(14,165,233,0.15)] hover:bg-sky-500 hover:text-white transition-all duration-200 active:scale-95 cursor-pointer">
+<button type="submit" className="px-5 py-2.5 rounded-lg border border-[color-mix(in_oklab,var(--neon)_55%,transparent)] bg-[var(--neon-soft)] text-[var(--neon)] text-xs font-bold shadow-[0_0_10px_rgba(14,165,233,0.15)] hover:bg-[var(--neon)] hover:text-white transition-all duration-200 active:scale-95 cursor-pointer">
   Create goal
 </button>
-          <Link to="/goals" className="px-4 py-2.5 rounded-lg border border-white/10 bg-transparent text-white hover:bg-white/5 transition font-semibold">Cancel</Link>
+          <Link to="/goals" className="px-4 py-2.5 rounded-lg border border-border bg-transparent text-foreground hover:bg-accent transition font-semibold">Cancel</Link>
         </div>
       </form>
     </div>
@@ -228,7 +228,7 @@ function CreateGoal() {
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold text-muted-foreground">{label}{required && <span className="text-sky-400"> *</span>}</span>
+      <span className="text-xs font-semibold text-muted-foreground">{label}{required && <span className="text-[var(--neon)]"> *</span>}</span>
       <div className="mt-1.5">{children}</div>
     </label>
   );
@@ -237,6 +237,6 @@ function Field({ label, required, children }: { label: string; required?: boolea
 function NumInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <input type="number" value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-white outline-none focus:border-sky-500/50" />
+      className="w-full rounded-lg bg-muted/50 border border-border px-3 py-1.5 text-xs text-foreground outline-none focus:border-[var(--neon)]" />
   );
 }

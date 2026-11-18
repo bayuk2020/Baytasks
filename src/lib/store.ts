@@ -4,6 +4,29 @@ import { useEffect } from "react";
 import { taskApi, subtaskApi, journalApi, bookApi, bookNoteApi, boardApi, habitApi, goalApi } from "@/lib/api";
 import { toast } from "sonner";
 
+/**
+ * Baca tema yang terakhir dipilih user.
+ *
+ * Harus memberi hasil yang SAMA dengan SKRIP_TEMA_AWAL di routes/__root.tsx
+ * (kunci "baytasks-theme", fallback ke preferensi sistem). Kalau berbeda,
+ * useEffect di AppShell akan menimpa kelas yang sudah dipasang skrip itu dan
+ * temanya "melompat" sesaat setelah halaman dimuat.
+ *
+ * Saat render di server (SSR) `window` tidak ada, jadi hasilnya "dark" — sama
+ * dengan className awal <html>, dan skrip di <head> yang membetulkannya di
+ * browser sebelum gambar pertama.
+ */
+function bacaTemaTersimpan(): "dark" | "light" {
+  if (typeof window === "undefined") return "dark";
+  try {
+    const tersimpan = localStorage.getItem("baytasks-theme");
+    if (tersimpan === "light" || tersimpan === "dark") return tersimpan;
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
 export type Priority = "low" | "med" | "high" | "urgent";
 export type ColumnId = "backlog" | "todo" | "in_progress" | "review" | "done";
 export type Mood = "great" | "good" | "neutral" | "low" | "bad";
@@ -40,8 +63,13 @@ export interface Milestone {
   target_value: number;
   current_value: number;
   due_date: string | null;
+  dueAt?: number;  // due_date dalam milidetik, dipakai komponen lama
   weight: number;
   completed: boolean;
+  /** Urutan manual hasil drag & drop. Dikelola backend lewat /milestones/reorder. */
+  sort_order?: number;
+  /** Alias sort_order untuk komponen yang sudah terlanjur membacanya sebagai `order`. */
+  order?: number;
 }
 
 export interface QuarterlyPlan {
@@ -221,6 +249,7 @@ interface State {
   addMilestone: (m: any) => Promise<string>;
   updateMilestone: (id: string, patch: any) => Promise<void>;
   removeMilestone: (id: string) => Promise<void>;
+  reorderMilestones: (goalId: string, orderedIds: (string | number)[]) => Promise<void>;
   addQuarterlyPlan: (q: any) => Promise<string>;
   updateQuarterlyPlan: (id: string, patch: any) => Promise<void>;
 }
@@ -299,7 +328,10 @@ export const useStore = create<State>()((set, get) => ({
   boards: [],
   tasks: [],
   activeBoardId: "",
-  theme: "dark",
+  // Dibaca dari localStorage supaya cocok dengan kelas yang sudah dipasang
+  // SKRIP_TEMA_AWAL di <head>. Kalau keduanya tidak sinkron, useEffect di
+  // AppShell akan langsung menimpa pilihan user kembali ke "dark".
+  theme: bacaTemaTersimpan(),
   telegram: { chatId: "", enabled: false, dailyBriefing: true },
   streak: { current: 1, lastDay: null },
   
@@ -791,7 +823,14 @@ loadHabits: async () => {
   
   toggleTheme: () => set((s) => {
     const next = s.theme === "dark" ? "light" : "dark";
-    if (typeof document !== "undefined") document.documentElement.classList.toggle("light", next === "light");
+    if (typeof document !== "undefined") {
+      document.documentElement.classList.toggle("light", next === "light");
+      // Disimpan supaya pilihan tema bertahan setelah refresh. Sebelum ini
+      // state-nya selalu kembali ke "dark" tiap halaman dimuat ulang, jadi
+      // pengguna tema terang harus menekan tombol ini berkali-kali sehari.
+      // Kunci yang sama dibaca SKRIP_TEMA_AWAL di routes/__root.tsx.
+      try { localStorage.setItem("baytasks-theme", next); } catch { /* localStorage bisa diblokir */ }
+    }
     return { theme: next };
   }),
 
@@ -868,8 +907,15 @@ loadHabits: async () => {
         current_value: Number(m.current_value),
         targetValue: Number(m.target_value),
         currentValue: Number(m.current_value),
+        due_date: m.due_date || null,
         dueAt: m.due_date ? new Date(m.due_date).getTime() : undefined,
-        completed: !!m.completed
+        completed: !!m.completed,
+        weight: Number(m.weight ?? 1),
+        // Urutan manual hasil drag & drop. Dipertahankan apa adanya dari
+        // backend; MilestoneTimeline mengurutkan dengan ini dan memakai id
+        // sebagai pemecah seri.
+        sort_order: Number(m.sort_order ?? m.order ?? 0),
+        order: Number(m.sort_order ?? m.order ?? 0)
       }));
 
       // 3. Amankan penarikan array perencanaan triwulan (quarterlyPlans) sekaligus
@@ -1141,8 +1187,45 @@ updateGoal: async (id: any, patch: any) => {
         milestones: (state.milestones || []).filter((m: any) => m.id.toString() !== id.toString())
       }));
       await goalApi.removeMilestone(id);
+      // Backend merapatkan ulang sort_order setelah hapus (biar tidak ada
+      // lubang 1,2,4,5...), jadi state lokal harus ikut disegarkan supaya
+      // drag & drop berikutnya menghitung posisi dari angka yang benar.
+      await get().loadGoals();
     } catch (err) {
       console.error("REMOVE MILESTONE ERROR", err);
+      toast.error("Gagal menghapus tahapan");
+      await get().loadGoals();
+    }
+  },
+
+  /**
+   * Simpan urutan baru milestone satu goal (hasil drag & drop).
+   *
+   * `orderedIds` adalah daftar id SETELAH dipindah, urut dari atas ke bawah.
+   * State lokal diperbarui lebih dulu supaya kartunya tidak "melompat balik"
+   * sepersekian detik sambil menunggu jawaban server; kalau request gagal,
+   * urutan lama dipasang kembali.
+   */
+  reorderMilestones: async (goalId: any, orderedIds: any[]) => {
+    const sebelum = get().milestones || [];
+
+    const posisiBaru = new Map<string, number>();
+    orderedIds.forEach((id: any, index: number) => posisiBaru.set(String(id), index + 1));
+
+    set((state: any) => ({
+      milestones: (state.milestones || []).map((m: any) =>
+        posisiBaru.has(String(m.id))
+          ? { ...m, sort_order: posisiBaru.get(String(m.id)), order: posisiBaru.get(String(m.id)) }
+          : m
+      )
+    }));
+
+    try {
+      await goalApi.reorderMilestones(goalId, orderedIds);
+    } catch (err) {
+      console.error("REORDER MILESTONE ERROR", err);
+      toast.error("Urutan gagal disimpan, dikembalikan seperti semula");
+      set({ milestones: sebelum });
     }
   },
 

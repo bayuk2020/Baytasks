@@ -77,11 +77,39 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+/**
+ * Dipasang di <head> supaya kelas `light` sudah menempel di <html> SEBELUM
+ * browser menggambar halaman pertama kali.
+ *
+ * Tanpa ini, tema disetel oleh useEffect di AppShell yang baru jalan setelah
+ * React selesai mount — jadi pengguna tema terang selalu disambut satu kedipan
+ * layar hitam dulu di setiap kali refresh. Di layar terang kedipan itu persis
+ * jenis gangguan yang bikin mata capek.
+ *
+ * Isinya sengaja dibuat sesingkat mungkin dan dibungkus try/catch: localStorage
+ * bisa melempar error di mode penyamaran atau kalau penyimpanan situs diblokir,
+ * dan skrip yang gagal di sini akan menghentikan render seluruh halaman.
+ */
+const SKRIP_TEMA_AWAL = `
+try {
+  var t = localStorage.getItem('baytasks-theme');
+  if (!t) {
+    t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  document.documentElement.classList.toggle('light', t === 'light');
+} catch (e) {}
+`;
+
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    /* suppressHydrationWarning WAJIB di sini: SKRIP_TEMA_AWAL sengaja mengubah
+       className <html> sebelum React hydrate, jadi HTML dari server ("dark")
+       memang berbeda dari DOM di browser ("dark light"). Tanpa atribut ini
+       React melaporkannya sebagai hydration mismatch di console. */
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: SKRIP_TEMA_AWAL }} />
       </head>
       <body>
         {children}

@@ -415,8 +415,8 @@ function CalendarPage() {
         case "med":
 
           return `
-            border-cyan-400/30
-            bg-cyan-500/10
+            border-[color-mix(in_oklab,var(--neon)_35%,transparent)]
+            bg-[var(--neon-soft)]
             text-cyan-100
           `;
 
@@ -496,13 +496,7 @@ function CalendarPage() {
                   font-bold
                   tracking-tight
 
-                  bg-gradient-to-r
-                  from-cyan-100
-                  via-cyan-300
-                  to-blue-400
-
-                  bg-clip-text
-                  text-transparent
+                  heading-gradient
                 "
               >
                 {monthLabel}
@@ -512,7 +506,7 @@ function CalendarPage() {
                 className="
                   h-5
                   w-5
-                  text-cyan-300
+                  text-[var(--neon)]
                 "
               />
 
@@ -566,8 +560,8 @@ function CalendarPage() {
 
                 bg-secondary/40
 
-                hover:border-cyan-400/30
-                hover:bg-cyan-500/10
+                hover:border-[color-mix(in_oklab,var(--neon)_35%,transparent)]
+                hover:bg-[var(--neon-soft)]
 
                 transition
               "
@@ -602,7 +596,7 @@ function CalendarPage() {
                 border
                 border-cyan-400/20
 
-                bg-cyan-500/10
+                bg-[var(--neon-soft)]
 
                 text-cyan-100
                 text-sm
@@ -646,8 +640,8 @@ function CalendarPage() {
 
                 bg-secondary/40
 
-                hover:border-cyan-400/30
-                hover:bg-cyan-500/10
+                hover:border-[color-mix(in_oklab,var(--neon)_35%,transparent)]
+                hover:bg-[var(--neon-soft)]
 
                 transition
               "
@@ -833,7 +827,7 @@ function CalendarPage() {
                           today
 
                             ? `
-                              text-cyan-300
+                              text-[var(--neon)]
                               font-semibold
                             `
 
@@ -968,7 +962,7 @@ function CalendarPage() {
             Tanggal task dibuat
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-md border border-cyan-400/30 bg-cyan-500/10 px-1.5 py-0.5">
+            <span className="inline-flex items-center gap-1 rounded-md border border-[color-mix(in_oklab,var(--neon)_35%,transparent)] bg-[var(--neon-soft)] px-1.5 py-0.5">
               <Flag className="h-2.5 w-2.5 opacity-70 text-cyan-100" />
             </span>
             Deadline (warna mengikuti prioritas, merah kalau lewat)
@@ -987,7 +981,7 @@ function CalendarPage() {
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-cyan-300" />
+            <Clock className="h-4 w-4 text-[var(--neon)]" />
             <h2 className="text-sm font-semibold tracking-tight">
               Daily Log —{" "}
               {selectedDate.toLocaleDateString(undefined, {
@@ -1000,7 +994,7 @@ function CalendarPage() {
           {selectedDate.toDateString() !== new Date().toDateString() && (
             <button
               onClick={() => setSelectedDate(new Date())}
-              className="text-xs text-cyan-300 hover:text-cyan-200 transition"
+              className="text-xs text-[var(--neon)] hover:brightness-110 transition"
             >
               Kembali ke hari ini
             </button>
@@ -1175,7 +1169,7 @@ function CalendarPage() {
             <button
               onClick={() => setCreating(true)}
               title={`Task baru akan masuk ke board "${activeBoardName}"`}
-              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/25 transition"
+              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border border-[color-mix(in_oklab,var(--neon)_35%,transparent)] bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/25 transition"
             >
               <Plus className="h-3.5 w-3.5" />
               Tambah Task

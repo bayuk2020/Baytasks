@@ -30,9 +30,9 @@ export function QuarterlyPlanner({ goal, accent }: { goal: any; accent: string }
   const displayQ = year === currentYear ? currentQ : 0;
 
   return (
-    <div className="space-y-4 text-white text-xs">
+    <div className="space-y-4 text-foreground text-xs">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h3 className="font-bold text-white/90">Perencanaan Triwulan (Quarterly)</h3>
+        <h3 className="font-bold text-foreground">Perencanaan Triwulan (Quarterly)</h3>
         <div className="flex items-center gap-1.5">
           {years.map((y) => (
             <button
@@ -50,7 +50,7 @@ export function QuarterlyPlanner({ goal, accent }: { goal: any; accent: string }
           ))}
           <button
             onClick={() => setYear(year + 1)}
-            className="h-7 w-7 grid place-items-center rounded-lg border border-white/10 text-muted-foreground hover:text-white bg-transparent cursor-pointer"
+            className="h-7 w-7 grid place-items-center rounded-lg border border-border text-muted-foreground hover:text-foreground bg-transparent cursor-pointer"
             aria-label="Add year"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -72,7 +72,7 @@ export function QuarterlyPlanner({ goal, accent }: { goal: any; accent: string }
             <button
               key={q}
               onClick={() => setOpen(isOpen ? null : q)}
-              className="text-left border bg-white/[0.01] rounded-2xl p-4 relative overflow-hidden transition cursor-pointer"
+              className="text-left border bg-card rounded-2xl p-4 relative overflow-hidden transition cursor-pointer"
               style={{ borderColor: isOpen ? accent : isCurrent ? `${accent}60` : "rgba(255,255,255,0.05)" }}
             >
               {isCurrent && (
@@ -85,7 +85,7 @@ export function QuarterlyPlanner({ goal, accent }: { goal: any; accent: string }
                 <>
                   <div className="mt-2 text-base font-bold" style={{ color: accent }}>{pct}%</div>
                   <div className="text-[10px] text-muted-foreground font-medium">{currentAmount} / {targetAmount} {unitLabel}</div>
-                  <div className="mt-2 h-1 rounded-full bg-black/40 overflow-hidden">
+                  <div className="mt-2 h-1 rounded-full bg-secondary overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, pct)}%` }} className="h-full rounded-full" style={{ background: accent }} />
                   </div>
                 </>
@@ -163,7 +163,7 @@ function QuarterDetail({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className="border border-white/5 bg-white/[0.01] rounded-2xl p-5"
+      className="border border-border bg-card rounded-2xl p-5"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="space-y-4">
@@ -171,14 +171,14 @@ function QuarterDetail({
           <div className="grid grid-cols-3 gap-3">
             <Field label="Target">
               <input value={target} onChange={(e) => setTarget(e.target.value)} type="number"
-                className="w-full rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5 text-xs text-white outline-none focus:border-sky-500/50" />
+                className="w-full rounded-lg bg-muted/50 border border-border px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-[var(--neon)]" />
             </Field>
             <Field label="Aktual">
               <input value={current} onChange={(e) => setCurrent(e.target.value)} type="number"
-                className="w-full rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5 text-xs text-white outline-none focus:border-sky-500/50" />
+                className="w-full rounded-lg bg-muted/50 border border-border px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-[var(--neon)]" />
             </Field>
             <Field label="Sisa">
-              <div className="rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5 text-xs text-white/50 font-medium">{remaining} {unitLabel}</div>
+              <div className="rounded-lg bg-muted/50 border border-border px-2.5 py-1.5 text-xs text-muted-foreground font-medium">{remaining} {unitLabel}</div>
             </Field>
           </div>
           <button
@@ -189,7 +189,7 @@ function QuarterDetail({
               if (plan) onUpdate(plan.id, { target_amount: t, current_amount: c, target: t, current: c });
               else onCreate(t, c);
             }}
-            className="rounded-lg bg-sky-600 hover:bg-sky-500 text-white px-4 py-1.5 text-xs font-bold transition shadow-md border-0 cursor-pointer"
+            className="rounded-lg bg-[var(--neon)] hover:brightness-110 text-white px-4 py-1.5 text-xs font-bold transition shadow-md border-0 cursor-pointer"
           >
             {plan ? "Update Triwulan" : "Buat Rencana Triwulan"}
           </button>
@@ -211,9 +211,9 @@ function QuarterDetail({
               </div>
             ))}
           </div>
-          <div className="mt-4 rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-xs font-medium">
-            <span className="text-[9px] uppercase font-bold tracking-wider text-sky-400 block mb-0.5">Saran AI Coach</span>
-            <p className="leading-relaxed text-white/77 italic">"{suggestion}"</p>
+          <div className="mt-4 rounded-xl border border-border bg-muted/50 px-3 py-2 text-xs font-medium">
+            <span className="text-[9px] uppercase font-bold tracking-wider text-[var(--neon)] block mb-0.5">Saran AI Coach</span>
+            <p className="leading-relaxed text-foreground/80 italic">"{suggestion}"</p>
           </div>
         </div>
       </div>

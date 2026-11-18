@@ -63,14 +63,17 @@ function GoalsList() {
   }, [goals, q, filter]);
 
   return (
-    <div className="space-y-6 relative text-white text-xs">
+    <div className="space-y-6 relative text-foreground text-xs">
       <div className="pointer-events-none absolute -top-24 right-1/4 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
 
-      <div className="flex items-center justify-between relative gap-3 border-b border-white/5 pb-4">
-        <Link to="/goals" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-white transition font-semibold">
+      <div className="flex items-center justify-between relative gap-3 border-b border-border pb-4">
+        <Link to="/goals" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition font-semibold">
           <ArrowLeft className="h-4 w-4" /> Dashboard
         </Link>
-        <Link to="/goals/create" className="px-4 py-1.5 rounded-lg bg-indigo-600 font-semibold shadow-md transition text-white border-0 cursor-pointer">
+        {/* Tombol aksi utama: latar biru pekat + teks PUTIH di kedua tema.
+            text-foreground di sini jadi teks gelap di atas biru gelap saat
+            tema terang. */}
+        <Link to="/goals/create" className="px-4 py-1.5 rounded-lg bg-[var(--neon)] hover:brightness-110 font-semibold shadow-md transition text-white border-0 cursor-pointer">
           <Plus className="h-4 w-4 inline mr-1" /> New Goal
         </Link>
       </div>
@@ -82,15 +85,15 @@ function GoalsList() {
 
       <div className="flex items-center gap-3 flex-wrap relative">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search goals…"
-            className="w-full rounded-lg bg-white/5 border border-white/10 pl-9 pr-3 py-1.5 text-xs text-white placeholder:text-white/20 outline-none focus:border-indigo-500/50" />
+            className="w-full rounded-lg bg-muted/50 border border-border pl-9 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-indigo-500/50" />
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
           {FILTERS.map((f) => (
             <button key={f.id} onClick={() => setFilter(f.id)}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition border cursor-pointer bg-transparent ${
-                filter === f.id ? "border-indigo-500 text-indigo-400 bg-indigo-500/10" : "border-white/10 text-muted-foreground hover:text-white"
+                filter === f.id ? "border-indigo-500 text-indigo-400 bg-indigo-500/10" : "border-border text-muted-foreground hover:text-foreground"
               }`}>
               {f.label}
             </button>
@@ -98,8 +101,8 @@ function GoalsList() {
         </div>
       </div>
 
-      <div className="border border-white/5 bg-white/[0.01] rounded-2xl overflow-hidden relative">
-        <div className="hidden md:grid grid-cols-[2fr_1fr_1.4fr_1fr_1fr] gap-3 px-4 py-3 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-b border-white/5 bg-white/5">
+      <div className="border border-border bg-card rounded-2xl overflow-hidden relative">
+        <div className="hidden md:grid grid-cols-[2fr_1fr_1.4fr_1fr_1fr] gap-3 px-4 py-3 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-b border-border bg-muted/50">
           <span>Goal</span><span>Life area</span><span>Progress</span><span>Status</span><span>Target date</span>
         </div>
         {filtered.length === 0 ? (
@@ -116,15 +119,15 @@ function GoalsList() {
             return (
               <motion.div key={g.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
                 <Link to="/goals/$id" params={{ id: g.id.toString() }}
-                  className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1.4fr_1fr_1fr] gap-3 px-4 py-3.5 items-center border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition"
+                  className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1.4fr_1fr_1fr] gap-3 px-4 py-3.5 items-center border-b border-border last:border-0 hover:bg-accent/40 transition"
                 >
                   <div className="min-w-0">
-                    <div className="font-semibold truncate text-white">{g.title || g.name}</div>
+                    <div className="font-semibold truncate text-foreground">{g.title || g.name}</div>
                     <div className="text-[10px] text-muted-foreground truncate">{currentAmount} / {targetAmount}</div>
                   </div>
-                  <div className="text-xs text-white/80 flex items-center gap-1.5"><span>{area.emoji}</span>{area.label}</div>
+                  <div className="text-xs text-foreground/80 flex items-center gap-1.5"><span>{area.emoji}</span>{area.label}</div>
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 h-1.5 rounded-full bg-black/40 overflow-hidden">
+                    <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${g.progress_percent}%`, background: area.color }} />
                     </div>
                     <span className="text-xs font-bold w-9 text-right" style={{ color: area.color }}>{g.progress_percent}%</span>

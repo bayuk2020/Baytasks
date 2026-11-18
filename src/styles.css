@@ -117,31 +117,98 @@
   --sidebar-border: oklch(1 0 0 / 6%);
 }
 
+/* ===========================================================================
+   TEMA TERANG
+   ---------------------------------------------------------------------------
+   Versi sebelumnya praktis putih semua: --background 0.985, --card putih
+   murni, dan --border cuma 10% hitam. Hasilnya kartu tidak kelihatan batasnya
+   (putih di atas putih), tidak ada kedalaman sama sekali, dan karena semuanya
+   terang maksimal kontrasnya jadi menyilaukan.
+
+   Perbaikannya tiga hal:
+     1. KANVAS BUKAN PUTIH. --background diberi sedikit warna (abu kebiruan
+        sejuk). Kartu yang putih murni jadi otomatis "naik" di atasnya tanpa
+        perlu garis tebal — ini cara yang sama dipakai produk modern seperti
+        Linear/Notion, dan jauh lebih enak dipandang berjam-jam daripada putih
+        menyala.
+     2. BATAS & BAYANGAN YANG TERBACA. --border dinaikkan ke 14%, dan
+        --shadow-card diganti jadi bayangan lembut khas tema terang (versi
+        gelapnya memakai rgb(0 0 0 / .6) yang kalau dipakai di sini terlihat
+        seperti noda).
+     3. WARNA AKSEN YANG LEBIH PEKAT. Warna neon/chart/priority milik tema
+        gelap terlalu terang untuk latar putih — kuning dan cyan-nya nyaris
+        hilang. Semuanya diturunkan lightness-nya dan dinaikkan chroma-nya
+        supaya tetap berwarna tapi tetap terbaca (target kontras >= 4.5:1
+        untuk teks, >= 3:1 untuk elemen grafis).
+   =========================================================================== */
 .light {
-  --background: oklch(0.985 0.003 240);
-  --foreground: oklch(0.15 0.01 250);
+  /* --- Permukaan ---------------------------------------------------------- */
+  --background: oklch(0.967 0.009 250);        /* kanvas abu kebiruan, bukan putih */
+  --foreground: oklch(0.21 0.02 255);          /* teks utama: abu tinta, bukan hitam pekat */
   --surface: oklch(1 0 0);
-  --surface-elevated: oklch(0.98 0.005 240);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.01 250);
+  --surface-elevated: oklch(1 0 0);
+  --card: oklch(1 0 0);                        /* kartu putih -> timbul di atas kanvas */
+  --card-foreground: oklch(0.21 0.02 255);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.01 250);
-  --primary: oklch(0.55 0.18 240);
+  --popover-foreground: oklch(0.21 0.02 255);
+
+  /* --- Warna utama -------------------------------------------------------- */
+  --primary: oklch(0.52 0.19 252);
   --primary-foreground: oklch(0.99 0.005 240);
-  --secondary: oklch(0.95 0.01 240);
-  --secondary-foreground: oklch(0.2 0.01 250);
-  --muted: oklch(0.95 0.01 240);
-  --muted-foreground: oklch(0.45 0.02 250);
-  --accent: oklch(0.93 0.03 235);
-  --accent-foreground: oklch(0.2 0.01 250);
-  --border: oklch(0.15 0.01 250 / 10%);
-  --input: oklch(0.15 0.01 250 / 12%);
-  --ring: oklch(0.55 0.18 240);
-  --neon: oklch(0.6 0.18 240);
-  --neon-soft: oklch(0.6 0.18 240 / 0.12);
-  --sidebar: oklch(0.97 0.005 240);
-  --sidebar-foreground: oklch(0.15 0.01 250);
-  --sidebar-border: oklch(0.15 0.01 250 / 8%);
+
+  --secondary: oklch(0.945 0.012 250);         /* chip / tombol sekunder */
+  --secondary-foreground: oklch(0.3 0.025 255);
+
+  --muted: oklch(0.955 0.01 250);
+  --muted-foreground: oklch(0.47 0.03 255);    /* kontras ~5.4:1 di atas kartu putih */
+
+  --accent: oklch(0.93 0.04 250);              /* latar hover */
+  --accent-foreground: oklch(0.28 0.06 255);
+
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.99 0.01 240);
+
+  /* --- Garis & fokus ------------------------------------------------------ */
+  --border: oklch(0.21 0.02 255 / 14%);
+  --input: oklch(0.21 0.02 255 / 18%);
+  --ring: oklch(0.52 0.19 252);
+
+  --neon: oklch(0.54 0.19 252);                /* "neon" di tema terang = biru pekat */
+  --neon-soft: oklch(0.54 0.19 252 / 0.1);
+
+  /* --- Prioritas ---------------------------------------------------------- */
+  /* Versi gelapnya (lightness 0.72-0.78) hampir tidak terlihat di latar putih. */
+  --priority-low: oklch(0.52 0.12 195);
+  --priority-med: oklch(0.58 0.14 75);
+  --priority-high: oklch(0.57 0.18 40);
+  --priority-urgent: oklch(0.53 0.23 22);
+
+  /* --- Grafik ------------------------------------------------------------- */
+  /* Lima warna yang tetap bisa dibedakan satu sama lain di latar terang,
+     termasuk oleh mata yang kesulitan membedakan merah-hijau: biru, teal,
+     ambar, jingga, ungu. */
+  --chart-1: oklch(0.55 0.19 252);
+  --chart-2: oklch(0.57 0.14 175);
+  --chart-3: oklch(0.65 0.15 78);
+  --chart-4: oklch(0.6 0.19 35);
+  --chart-5: oklch(0.55 0.2 305);
+
+  /* --- Sidebar ------------------------------------------------------------ */
+  --sidebar: oklch(0.985 0.005 250);
+  --sidebar-foreground: oklch(0.21 0.02 255);
+  --sidebar-border: oklch(0.21 0.02 255 / 10%);
+
+  /* --- Bayangan & gradien khusus tema terang ------------------------------ */
+  /* Dua lapis: satu tipis dan rapat untuk mempertegas tepi, satu lebar dan
+     lembut untuk kesan mengambang. Keduanya netral kebiruan, bukan hitam,
+     supaya tidak terlihat kotor di atas kanvas berwarna. */
+  --shadow-card:
+    0 1px 2px -1px oklch(0.21 0.02 255 / 0.08),
+    0 4px 16px -8px oklch(0.21 0.02 255 / 0.12);
+  --shadow-glow:
+    0 0 0 1px color-mix(in oklab, var(--neon) 30%, transparent),
+    0 8px 28px -12px color-mix(in oklab, var(--neon) 40%, transparent);
+  --gradient-surface: linear-gradient(180deg, oklch(1 0 0), oklch(0.995 0.004 250));
 }
 
 @layer base {
@@ -161,6 +228,17 @@
       radial-gradient(900px 500px at -10% 110%, color-mix(in oklab, var(--neon) 8%, transparent), transparent 60%);
     background-attachment: fixed;
     min-height: 100vh;
+  }
+
+  /* Di tema gelap, dua gradien neon di atas terbaca sebagai cahaya. Di tema
+     terang dengan kadar yang sama hasilnya justru seperti layar kotor
+     kebiruan, dan ikut menurunkan kontras teks di dekat sudut layar. Jadi di
+     sini kadarnya dikecilkan jauh dan diberi satu gradien hangat di sudut
+     berlawanan supaya halamannya tetap hidup, tidak datar. */
+  .light body {
+    background-image:
+      radial-gradient(1100px 560px at 85% -12%, color-mix(in oklab, var(--neon) 5%, transparent), transparent 62%),
+      radial-gradient(900px 500px at -12% 108%, color-mix(in oklab, var(--chart-5) 4%, transparent), transparent 62%);
   }
 
   ::selection { background: color-mix(in oklab, var(--neon) 35%, transparent); }
@@ -189,12 +267,60 @@
     -webkit-backdrop-filter: blur(22px) saturate(160%);
     border: 1px solid var(--color-border);
   }
+
+  /* Glassmorphism bekerja di tema gelap karena permukaan semi-transparan di
+     atas latar gelap menghasilkan beda terang yang jelas. Di tema terang,
+     permukaan semi-transparan di atas latar terang hasilnya cuma kabur tanpa
+     kontras — kartu jadi "hilang". Di tema terang kartu dibuat SOLID dan
+     kedalamannya diambil dari bayangan, bukan dari blur. */
+  .light .glass {
+    background: var(--color-card);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .light .glass-strong {
+    background: var(--color-card);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-card);
+  }
+  .light .hover-lift:hover {
+    box-shadow:
+      0 2px 4px -2px oklch(0.21 0.02 255 / 0.1),
+      0 12px 28px -12px color-mix(in oklab, var(--neon) 35%, transparent);
+  }
   .neon-ring {
     box-shadow: var(--shadow-glow);
   }
   .neon-text {
     color: var(--neon);
     text-shadow: 0 0 24px color-mix(in oklab, var(--neon) 35%, transparent);
+  }
+
+  /* Judul halaman bergradien.
+     Sebelumnya beberapa halaman (Boards, Analytics, Calendar) menulis
+     gradiennya langsung sebagai `from-cyan-100 via-cyan-300 to-blue-400`.
+     cyan-100 praktis putih, jadi di tema terang separuh judulnya hilang di
+     atas latar. Kelas ini memakai token tema, dengan arah yang dibalik untuk
+     tema terang: dari terang-ke-gelap jadi gelap-ke-berwarna. */
+  .heading-gradient {
+    background-image: linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--neon) 45%, white),
+      var(--neon) 55%,
+      var(--chart-5)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .light .heading-gradient {
+    background-image: linear-gradient(
+      90deg,
+      var(--neon),
+      color-mix(in oklab, var(--neon) 60%, var(--chart-5)) 55%,
+      var(--chart-5)
+    );
   }
   .hover-lift {
     transition: transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s, border-color .25s;

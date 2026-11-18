@@ -48,7 +48,7 @@ export function GoalAnalytics({ goal, accent }: { goal: any; accent: string }) {
   const maxTrend = Math.max(100, ...trend);
 
   return (
-    <div className="space-y-5 text-white text-xs">
+    <div className="space-y-5 text-foreground text-xs">
       {/* Batang Statistik Utama */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat icon={<Gauge className="h-4 w-4" />} label="Overall progress" value={`${pct}%`} accent={accent} highlight />
@@ -71,11 +71,11 @@ export function GoalAnalytics({ goal, accent }: { goal: any; accent: string }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Kinerja Triwulan */}
-        <div className="border border-white/5 bg-white/[0.01] rounded-2xl p-5">
-          <h3 className="font-semibold text-white/90 mb-1">Quarterly performance</h3>
+        <div className="border border-border bg-card rounded-2xl p-5">
+          <h3 className="font-semibold text-foreground mb-1">Quarterly performance</h3>
           <p className="text-[11px] text-muted-foreground mb-5">Completion against each quarter's target.</p>
           {qPlans.length === 0 ? (
-            <div className="py-10 text-center border border-dashed border-white/5 rounded-xl bg-black/10 text-muted-foreground">
+            <div className="py-10 text-center border border-dashed border-border rounded-xl bg-muted/40 text-muted-foreground">
               No quarterly plans yet.
             </div>
           ) : (
@@ -101,19 +101,19 @@ export function GoalAnalytics({ goal, accent }: { goal: any; accent: string }) {
         </div>
 
         {/* Grafik Tren Svg */}
-        <div className="border border-white/5 bg-white/[0.01] rounded-2xl p-5">
-          <h3 className="font-semibold text-white/90 mb-1">Progress trend</h3>
+        <div className="border border-border bg-card rounded-2xl p-5">
+          <h3 className="font-semibold text-foreground mb-1">Progress trend</h3>
           <p className="text-[11px] text-muted-foreground mb-5">Cumulative completion over planned periods.</p>
           {trend.length < 2 ? (
-            <div className="py-10 text-center border border-dashed border-white/5 rounded-xl bg-black/10 text-muted-foreground">
+            <div className="py-10 text-center border border-dashed border-border rounded-xl bg-muted/40 text-muted-foreground">
               Need at least two quarters or points to chart a trend curve. Current progress: {pct}%
             </div>
           ) : (
             <Sparkline values={trend} max={maxTrend} accent={accent} />
           )}
-          <div className="mt-5 flex items-center justify-between rounded-xl border border-white/5 bg-white/5 px-3 py-2.5">
+          <div className="mt-5 flex items-center justify-between rounded-xl border border-border bg-muted/50 px-3 py-2.5">
             <span className="text-xs text-muted-foreground">Milestone completion</span>
-            <div className="flex-1 mx-3 h-2 rounded-full bg-black/40 overflow-hidden">
+            <div className="flex-1 mx-3 h-2 rounded-full bg-secondary overflow-hidden">
               <motion.div initial={{ width: 0 }} animate={{ width: `${msRate}%` }} className="h-full rounded-full" style={{ background: accent }} />
             </div>
             <span className="text-xs font-bold" style={{ color: accent }}>{msRate}%</span>
@@ -155,7 +155,7 @@ function Stat({ icon, label, value, sub, accent, highlight }: {
   icon: React.ReactNode; label: string; value: React.ReactNode; sub?: string; accent: string; highlight?: boolean;
 }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="border border-white/5 bg-white/[0.02] rounded-2xl p-4 relative overflow-hidden">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="border border-border bg-card rounded-2xl p-4 relative overflow-hidden">
       {highlight && <div className="pointer-events-none absolute -top-10 -right-10 h-28 w-28 rounded-full blur-2xl opacity-20" style={{ background: accent }} />}
       <div className="relative flex items-center gap-1.5 text-xs text-muted-foreground">{icon}{label}</div>
       <div className="relative mt-2 text-xl font-bold" style={{ color: highlight ? accent : undefined }}>{value}</div>

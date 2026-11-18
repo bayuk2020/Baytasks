@@ -101,6 +101,29 @@ function GoalDetail() {
   const [editPriority, setEditPriority] = useState("med");
   const [editNotes, setEditNotes] = useState("");
 
+  // HOOK INI HARUS DI ATAS `if (!goal) return ...`.
+  //
+  // Sebelumnya useMemo ini berada SETELAH early-return, dan itu melanggar
+  // Rules of Hooks: saat halaman dibuka langsung lewat URL (atau di-refresh),
+  // render pertama terjadi ketika daftar goal masih kosong -> `goal` undefined
+  // -> komponen keluar lebih awal dengan 56 hook. Begitu loadGoals() selesai,
+  // render berikutnya melewati early-return dan memanggil hook ke-57, lalu
+  // React melempar "Rendered more hooks than during the previous render" dan
+  // SELURUH halaman detail Goal jatuh ke error boundary. Efeknya: halaman
+  // detail Goal praktis tidak bisa dibuka lewat refresh/URL langsung.
+  //
+  // `goal?.` dipakai karena hook ini sekarang ikut jalan pada render saat
+  // goal belum ada.
+  const goalActivity = useMemo(() => {
+    const rawLogs = goal?.reviews || goal?.activities || [];
+    return [...rawLogs]
+      .sort(
+        (a: any, b: any) =>
+          new Date(b.created_at || b.ts).getTime() - new Date(a.created_at || a.ts).getTime(),
+      )
+      .slice(0, 40);
+  }, [goal?.reviews, goal?.activities]);
+
   if (!goal) return <Fallback message="Goal not found." />;
 
   const calculatedProgress = computeGoalProgress(goal, ctx);
@@ -112,11 +135,6 @@ function GoalDetail() {
   const area = LIFE_AREA_META_LOCAL[areaKey] || LIFE_AREA_META_LOCAL["career"];
   const dRem = daysRemaining(goal);
   const insights = generateInsights(goal, { ...ctx, milestones, plans });
-
-  const goalActivity = useMemo(() => {
-    const rawLogs = goal.reviews || goal.activities || [];
-    return [...rawLogs].sort((a: any, b: any) => new Date(b.created_at || b.ts).getTime() - new Date(a.created_at || a.ts).getTime()).slice(0, 40);
-  }, [goal.reviews, goal.activities]);
 
   const valueDriven = goal.type !== "task" && goal.type !== "habit";
   const totalMilestones = milestones.filter((m: any) => m.goalId?.toString() === id?.toString() || m.goal_id?.toString() === id?.toString());
@@ -187,30 +205,30 @@ function GoalDetail() {
   };
 
   return (
-    <div className="space-y-6 relative text-white text-xs">
+    <div className="space-y-6 relative text-foreground text-xs">
       <div className="pointer-events-none absolute -top-24 right-1/4 h-80 w-80 rounded-full blur-3xl opacity-15" style={{ background: area.color }} />
 
-      <div className="flex items-center justify-between relative gap-3 border-b border-white/5 pb-4">
-        <Link to="/goals" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-white transition">
+      <div className="flex items-center justify-between relative gap-3 border-b border-border pb-4">
+        <Link to="/goals" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition">
           <ArrowLeft className="h-4 w-4" /> Goals
         </Link>
         <div className="flex items-center gap-2">
           {/* 🌟 FORM EDIT BUTTON DITANGKAP DISINI */}
-          <button onClick={openEditModal} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition cursor-pointer font-semibold text-sky-400">
+          <button onClick={openEditModal} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-muted/50 hover:bg-accent transition cursor-pointer font-semibold text-[var(--neon)]">
             <Edit3 className="h-3.5 w-3.5" /> Edit
           </button>
           {goal.status !== "completed" && (
-            <button onClick={() => rawStore.setGoalStatus?.(id, "completed")} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition cursor-pointer font-semibold">
+            <button onClick={() => rawStore.setGoalStatus?.(id, "completed")} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-muted/50 hover:bg-accent transition cursor-pointer font-semibold">
               <CheckCircle2 className="h-3.5 w-3.5" style={{ color: area.color }} /> Complete
             </button>
           )}
-          <button onClick={() => { if (rawStore.removeGoal) { rawStore.removeGoal(id); router.navigate({ to: "/goals" }); } }} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 hover:border-red-500/50 hover:text-red-400 transition cursor-pointer font-semibold">
+          <button onClick={() => { if (rawStore.removeGoal) { rawStore.removeGoal(id); router.navigate({ to: "/goals" }); } }} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border hover:border-red-500/50 hover:text-red-400 transition cursor-pointer font-semibold">
             <Trash2 className="h-3.5 w-3.5" /> Delete
           </button>
         </div>
       </div>
 
-      <div className="border border-white/5 bg-white/[0.01] rounded-2xl p-6 relative overflow-hidden" style={{ boxShadow: `0 0 40px ${area.color}05` }}>
+      <div className="border border-border bg-card rounded-2xl p-6 relative overflow-hidden" style={{ boxShadow: `0 0 40px ${area.color}05` }}>
         <div className="pointer-events-none absolute -top-16 -right-10 h-48 w-48 rounded-full blur-3xl opacity-25" style={{ background: area.color }} />
         <div className="relative flex flex-col md:flex-row md:items-center gap-6">
           <ProgressRing 
@@ -226,11 +244,11 @@ function GoalDetail() {
               <span className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide" style={{ color: area.color, borderColor: `${area.color}40`, background: `${area.color}15` }}>
                 {goal.status === "completed" || pct === 100 ? "Completed" : "Active"}
               </span>
-              <span className="rounded-full px-2 py-0.5 text-[10px] font-medium border border-white/10 text-white/60">{area.label}</span>
+              <span className="rounded-full px-2 py-0.5 text-[10px] font-medium border border-border text-muted-foreground">{area.label}</span>
             </div>
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white mt-2">{goal.title || goal.name}</h1>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground mt-2">{goal.title || goal.name}</h1>
             {goal.description && <p className="text-xs text-muted-foreground italic mt-1.5">"{goal.description}"</p>}
-            <div className="mt-4 flex items-center gap-4 text-white/50 font-medium">
+            <div className="mt-4 flex items-center gap-4 text-muted-foreground font-medium">
               <span className="inline-flex items-center gap-1.5"><Target className="h-4 w-4" style={{ color: area.color }} /> {area.label}</span>
               <span className="inline-flex items-center gap-1.5">
                 <CalendarClock className="h-4 w-4" />
@@ -244,9 +262,9 @@ function GoalDetail() {
         </div>
       </div>
 
-      <div className="flex items-center gap-6 border-b border-white/5 relative overflow-x-auto select-none font-medium">
+      <div className="flex items-center gap-6 border-b border-border relative overflow-x-auto select-none font-medium">
         {TABS.map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`pb-2.5 transition-all relative bg-transparent border-0 cursor-pointer ${tab === t ? "font-semibold" : "text-white/40 hover:text-white/80"}`} style={{ color: tab === t ? area.color : undefined }}>
+          <button key={t} onClick={() => setTab(t)} className={`pb-2.5 transition-all relative bg-transparent border-0 cursor-pointer ${tab === t ? "font-semibold" : "text-muted-foreground/70 hover:text-foreground/80"}`} style={{ color: tab === t ? area.color : undefined }}>
             {t}
             {tab === t && <motion.div layoutId="goal-tab" className="absolute left-0 right-0 bottom-0 h-[2px] rounded-full" style={{ background: area.color }} />}
           </button>
@@ -260,25 +278,25 @@ function GoalDetail() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-2 space-y-5">
                   {valueDriven && goal.status !== "completed" && (
-                    <div className="border border-white/5 bg-white/[0.01] rounded-xl p-5 space-y-3">
+                    <div className="border border-border bg-card rounded-xl p-5 space-y-3">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-white/90">Pembaruan Progres Capaian</h3>
+                        <h3 className="font-semibold text-foreground">Pembaruan Progres Capaian</h3>
                         <AnimatePresence>{saved && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-xs text-emerald-400 inline-flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Saved</motion.span>}</AnimatePresence>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => nudge(-1)} className="h-8 w-8 grid place-items-center rounded-lg border border-white/10 bg-white/5 text-white hover:bg-white/10 transition cursor-pointer"><Minus className="h-4 w-4" /></button>
-                        <button onClick={() => nudge(1)} className="h-8 w-8 grid place-items-center rounded-lg border border-white/10 bg-white/5 text-white hover:bg-white/10 transition cursor-pointer"><Plus className="h-4 w-4" /></button>
+                        <button onClick={() => nudge(-1)} className="h-8 w-8 grid place-items-center rounded-lg border border-border bg-muted/50 text-foreground hover:bg-accent transition cursor-pointer"><Minus className="h-4 w-4" /></button>
+                        <button onClick={() => nudge(1)} className="h-8 w-8 grid place-items-center rounded-lg border border-border bg-muted/50 text-foreground hover:bg-accent transition cursor-pointer"><Plus className="h-4 w-4" /></button>
                         <input value={valueInput} onChange={(e) => setValueInput(e.target.value)} type="number" placeholder={`Current (${current})`}
-                          className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-white/20 outline-none" />
+                          className="flex-1 bg-muted/50 border border-border rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none" />
                         <button onClick={commit} className="px-4 py-1.5 text-black rounded-lg font-semibold transition shadow-md border-0 cursor-pointer" style={{ background: area.color }}>Set</button>
                       </div>
                     </div>
                   )}
 
-                  <div className="border border-white/5 bg-white/[0.01] rounded-xl p-5">
+                  <div className="border border-border bg-card rounded-xl p-5">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-white/90 inline-flex items-center gap-2"><Link2 className="h-4 w-4" style={{ color: area.color }} /> Linked resources</h3>
-                      <button onClick={() => setLinking(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-white/10 bg-white/5 text-white hover:bg-white/10 transition cursor-pointer font-semibold border-0">
+                      <h3 className="font-semibold text-foreground inline-flex items-center gap-2"><Link2 className="h-4 w-4" style={{ color: area.color }} /> Linked resources</h3>
+                      <button onClick={() => setLinking(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-border bg-muted/50 text-foreground hover:bg-accent transition cursor-pointer font-semibold border-0">
                         <Plus className="h-3.5 w-3.5" /> Link
                       </button>
                     </div>
@@ -287,11 +305,11 @@ function GoalDetail() {
                     ) : (
                       <div className="grid sm:grid-cols-2 gap-2">
                         {goal.links.map((l: any) => (
-                          <div key={l.id} className="group flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-white/5 px-3 py-2.5">
+                          <div key={l.id} className="group flex items-center justify-between gap-2 rounded-xl border border-border bg-muted/50 px-3 py-2.5">
                             <div className="flex items-center gap-2 min-w-0">
                               <span>{LINK_EMOJI[l.type] || "🔗"}</span>
                               <div className="min-w-0">
-                                <div className="font-semibold truncate text-white">{l.label}</div>
+                                <div className="font-semibold truncate text-foreground">{l.label}</div>
                                 <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{l.type}</div>
                               </div>
                             </div>
@@ -303,16 +321,16 @@ function GoalDetail() {
                   </div>
 
                   {goal.notes && (
-                    <div className="border border-white/5 bg-white/[0.01] rounded-xl p-5 space-y-2">
-                      <h3 className="font-semibold text-white/90">Notes</h3>
-                      <p className="text-white/70 leading-relaxed bg-black/20 p-4 rounded-lg border border-white/5 whitespace-pre-wrap">{goal.notes}</p>
+                    <div className="border border-border bg-card rounded-xl p-5 space-y-2">
+                      <h3 className="font-semibold text-foreground">Notes</h3>
+                      <p className="text-muted-foreground leading-relaxed bg-muted/60 p-4 rounded-lg border border-border whitespace-pre-wrap">{goal.notes}</p>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-5">
                   <AICoach insights={insights} />
-                  <div className="border border-white/5 bg-white/[0.01] rounded-2xl p-5">
+                  <div className="border border-border bg-card rounded-2xl p-5">
                     <h3 className="font-semibold mb-3">Snapshot</h3>
                     <div className="space-y-2.5 text-xs font-medium">
                       <Row label="Progress" value={<span style={{ color: area.color }}>{pct}%</span>} />
@@ -329,7 +347,7 @@ function GoalDetail() {
             {tab === "Quarterly" && <QuarterlyPlanner goal={goal} accent={area.color} />}
             {tab === "Analytics" && <GoalAnalytics goal={goal} accent={area.color} />}
             {tab === "Activity" && (
-              <div className="border border-white/5 bg-white/[0.01] rounded-2xl p-5">
+              <div className="border border-border bg-card rounded-2xl p-5">
                 <h3 className="font-semibold mb-4 inline-flex items-center gap-2"><ActivityIcon className="h-4 w-4" style={{ color: area.color }} /> Activity Log</h3>
                 {goalActivity.length === 0 ? (
                   <p className="text-xs text-muted-foreground py-6 text-center">No activity yet.</p>
@@ -338,7 +356,7 @@ function GoalDetail() {
                     {goalActivity.map((a: any) => (
                       <li key={a.id} className="relative">
                         <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full" style={{ background: area.color }} />
-                        <div className="text-white/80">{a.text || a.description || "Aktivitas diperbarui"}</div>
+                        <div className="text-foreground/80">{a.text || a.description || "Aktivitas diperbarui"}</div>
                         <div className="text-[10px] text-muted-foreground mt-0.5">
                           {new Date(a.created_at || a.ts || Date.now()).toLocaleString("id-ID", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </div>
@@ -357,22 +375,22 @@ function GoalDetail() {
         {isEditing && (
           <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-2xl border border-white/10 bg-[#0c0f17] rounded-2xl p-6 space-y-5 shadow-2xl relative text-white max-h-[90vh] overflow-y-auto">
+              className="w-full max-w-2xl border border-border bg-[#0c0f17] rounded-2xl p-6 space-y-5 shadow-2xl relative text-foreground max-h-[90vh] overflow-y-auto">
               
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <h2 className="text-lg font-bold inline-flex items-center gap-2"><Edit3 className="h-4 w-4 text-sky-400" /> Edit Target Milestone</h2>
-                <button onClick={() => setIsEditing(false)} className="text-muted-foreground hover:text-white bg-transparent border-0 cursor-pointer"><X className="h-4 w-4" /></button>
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <h2 className="text-lg font-bold inline-flex items-center gap-2"><Edit3 className="h-4 w-4 text-[var(--neon)]" /> Edit Target Milestone</h2>
+                <button onClick={() => setIsEditing(false)} className="text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer"><X className="h-4 w-4" /></button>
               </div>
 
               <form onSubmit={handleEditSubmit} className="space-y-4">
                 <Field label="Goal name" required>
                   <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="e.g. Become debt free"
-                    className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none focus:border-sky-500/50" />
+                    className="w-full rounded-lg bg-muted/50 border border-border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-[var(--neon)]" />
                 </Field>
 
                 <Field label="Description">
                   <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={2} placeholder="What does success look like?"
-                    className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none focus:border-sky-500/50 resize-none" />
+                    className="w-full rounded-lg bg-muted/50 border border-border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-[var(--neon)] resize-none" />
                 </Field>
 
                 <Field label="Life area">
@@ -403,9 +421,9 @@ function GoalDetail() {
                       return (
                         <button type="button" key={t} onClick={() => setEditType(t)}
                           className={`text-left rounded-xl border px-3 py-2.5 transition cursor-pointer bg-transparent ${
-                            active ? "border-sky-500 bg-sky-950/20 neon-ring" : "border-white/10 hover:border-white/20"
+                            active ? "border-[var(--neon)] bg-[var(--neon-soft)] neon-ring" : "border-border hover:border-[color-mix(in_oklab,var(--neon)_45%,transparent)]"
                           }`}>
-                          <div className={`text-xs font-bold ${active ? "text-sky-400" : "text-white"}`}>{meta.label}</div>
+                          <div className={`text-xs font-bold ${active ? "text-[var(--neon)]" : "text-foreground"}`}>{meta.label}</div>
                           <div className="text-[10px] text-muted-foreground mt-0.5">{meta.hint}</div>
                         </button>
                       );
@@ -419,14 +437,14 @@ function GoalDetail() {
                   <Field label="Target"><NumInput value={editTarget} onChange={setEditTarget} /></Field>
                   <Field label="Unit">
                     <input value={editUnit} onChange={(e) => setEditUnit(e.target.value)} placeholder="M, books…"
-                      className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-white placeholder:text-white/20 outline-none focus:border-sky-500/50" />
+                      className="w-full rounded-lg bg-muted/50 border border-border px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-[var(--neon)]" />
                   </Field>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Target date">
                     <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)}
-                      className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-white outline-none focus:border-sky-500/50" />
+                      className="w-full rounded-lg bg-muted/50 border border-border px-3 py-1.5 text-xs text-foreground outline-none focus:border-[var(--neon)]" />
                   </Field>
                   <Field label="Priority">
                     <div className="flex gap-1.5">
@@ -435,7 +453,7 @@ function GoalDetail() {
                         return (
                           <button type="button" key={p.value} onClick={() => setEditPriority(p.value)}
                             className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold capitalize transition border cursor-pointer bg-transparent ${
-                              isCurrent ? p.activeClass : "border-white/10 text-muted-foreground hover:border-white/20"
+                              isCurrent ? p.activeClass : "border-border text-muted-foreground hover:border-[color-mix(in_oklab,var(--neon)_45%,transparent)]"
                             }`}>
                             {p.label}
                           </button>
@@ -447,12 +465,12 @@ function GoalDetail() {
 
                 <Field label="Notes">
                   <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={2} placeholder="Optional notes…"
-                    className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none focus:border-sky-500/50 resize-none" />
+                    className="w-full rounded-lg bg-muted/50 border border-border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-[var(--neon)] resize-none" />
                 </Field>
 
-                <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/5">
-                  <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 rounded-lg border border-white/10 bg-transparent text-white hover:bg-white/5 transition font-semibold cursor-pointer">Cancel</button>
-                  <button type="submit" className="px-5 py-2 rounded-lg border border-sky-500/50 bg-sky-950/20 text-sky-400 text-xs font-bold shadow-[0_0_10px_rgba(14,165,233,0.15)] hover:bg-sky-500 hover:text-white transition-all duration-200 cursor-pointer">
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+                  <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 rounded-lg border border-border bg-transparent text-foreground hover:bg-accent transition font-semibold cursor-pointer">Cancel</button>
+                  <button type="submit" className="px-5 py-2 rounded-lg border border-[color-mix(in_oklab,var(--neon)_55%,transparent)] bg-[var(--neon-soft)] text-[var(--neon)] text-xs font-bold shadow-[0_0_10px_rgba(14,165,233,0.15)] hover:bg-[var(--neon)] hover:text-white transition-all duration-200 cursor-pointer">
                     Save Changes
                   </button>
                 </div>
@@ -470,7 +488,7 @@ function GoalDetail() {
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="block text-left">
-      <span className="text-xs font-semibold text-muted-foreground">{label}{required && <span className="text-sky-400"> *</span>}</span>
+      <span className="text-xs font-semibold text-muted-foreground">{label}{required && <span className="text-[var(--neon)]"> *</span>}</span>
       <div className="mt-1.5">{children}</div>
     </label>
   );
@@ -479,25 +497,25 @@ function Field({ label, required, children }: { label: string; required?: boolea
 function NumInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <input type="number" value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-white outline-none focus:border-sky-500/50" />
+      className="w-full rounded-lg bg-muted/50 border border-border px-3 py-1.5 text-xs text-foreground outline-none focus:border-[var(--neon)]" />
   );
 }
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between text-white/50">
+    <div className="flex items-center justify-between text-muted-foreground">
       <span>{label}</span>
-      <span className="font-semibold text-white">{value}</span>
+      <span className="font-semibold text-foreground">{value}</span>
     </div>
   );
 }
 
 function Fallback({ message }: { message: string }) {
   return (
-    <div className="border border-dashed border-white/10 rounded-2xl p-12 text-center max-w-sm mx-auto space-y-4 text-xs text-muted-foreground">
-      <Flag className="h-6 w-6 text-sky-400 mx-auto opacity-70" />
+    <div className="border border-dashed border-border rounded-2xl p-12 text-center max-w-sm mx-auto space-y-4 text-xs text-muted-foreground">
+      <Flag className="h-6 w-6 text-[var(--neon)] mx-auto opacity-70" />
       <p>{message}</p>
-      <Link to="/goals" className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-sky-600 text-white font-semibold shadow-md">
+      <Link to="/goals" className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[var(--neon)] text-white font-semibold shadow-md">
         <ArrowLeft className="h-4 w-4" /> Back to goals
       </Link>
     </div>

@@ -9,93 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as StoryRouteImport } from './routes/story'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as PomodoroRouteImport } from './routes/pomodoro'
-import { Route as MindmapRouteImport } from './routes/mindmap'
-import { Route as LibraryRouteImport } from './routes/library'
-import { Route as JournalRouteImport } from './routes/journal'
-import { Route as IndexoldRouteImport } from './routes/indexold'
-import { Route as HabitsRouteImport } from './routes/habits'
-import { Route as FinanceRouteImport } from './routes/finance'
-import { Route as DocsRouteImport } from './routes/docs'
-import { Route as CalendarRouteImport } from './routes/calendar'
-import { Route as BoardRouteImport } from './routes/board'
-import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as GoalsIndexRouteImport } from './routes/goals.index'
-import { Route as FinanceIndexRouteImport } from './routes/finance.index'
-import { Route as GoalsListRouteImport } from './routes/goals.list'
-import { Route as GoalsCreateRouteImport } from './routes/goals.create'
-import { Route as GoalsIdRouteImport } from './routes/goals.$id'
-import { Route as FinanceTransactionsRouteImport } from './routes/finance.transactions'
-import { Route as FinanceTradingRouteImport } from './routes/finance.trading'
-import { Route as FinanceImportRouteImport } from './routes/finance.import'
-import { Route as FinanceDebtRouteImport } from './routes/finance.debt'
-import { Route as FinanceContactsRouteImport } from './routes/finance.contacts'
-import { Route as FinanceBudgetsRouteImport } from './routes/finance.budgets'
-import { Route as FinanceAnalyticsRouteImport } from './routes/finance.analytics'
-import { Route as FinanceAccountsRouteImport } from './routes/finance.accounts'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as BoardRouteImport } from './routes/board'
+import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as FinanceRouteImport } from './routes/finance'
+import { Route as HabitsRouteImport } from './routes/habits'
+import { Route as IndexoldRouteImport } from './routes/indexold'
+import { Route as JournalRouteImport } from './routes/journal'
+import { Route as LibraryRouteImport } from './routes/library'
+import { Route as MindmapRouteImport } from './routes/mindmap'
+import { Route as PomodoroRouteImport } from './routes/pomodoro'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as StoryRouteImport } from './routes/story'
 import { Route as BookBookIdRouteImport } from './routes/book.$bookId'
+import { Route as FinanceIndexRouteImport } from './routes/finance.index'
+import { Route as FinanceAccountsRouteImport } from './routes/finance.accounts'
+import { Route as FinanceAnalyticsRouteImport } from './routes/finance.analytics'
+import { Route as FinanceBudgetsRouteImport } from './routes/finance.budgets'
+import { Route as FinanceContactsRouteImport } from './routes/finance.contacts'
+import { Route as FinanceDebtRouteImport } from './routes/finance.debt'
+import { Route as FinanceImportRouteImport } from './routes/finance.import'
+import { Route as FinanceTradingRouteImport } from './routes/finance.trading'
+import { Route as FinanceTransactionsRouteImport } from './routes/finance.transactions'
+import { Route as GoalsIndexRouteImport } from './routes/goals.index'
+import { Route as GoalsIdRouteImport } from './routes/goals.$id'
+import { Route as GoalsCreateRouteImport } from './routes/goals.create'
+import { Route as GoalsListRouteImport } from './routes/goals.list'
 
-const StoryRoute = StoryRouteImport.update({
-  id: '/story',
-  path: '/story',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PomodoroRoute = PomodoroRouteImport.update({
-  id: '/pomodoro',
-  path: '/pomodoro',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MindmapRoute = MindmapRouteImport.update({
-  id: '/mindmap',
-  path: '/mindmap',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LibraryRoute = LibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JournalRoute = JournalRouteImport.update({
-  id: '/journal',
-  path: '/journal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexoldRoute = IndexoldRouteImport.update({
-  id: '/indexold',
-  path: '/indexold',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HabitsRoute = HabitsRouteImport.update({
-  id: '/habits',
-  path: '/habits',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FinanceRoute = FinanceRouteImport.update({
-  id: '/finance',
-  path: '/finance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsRoute = DocsRouteImport.update({
-  id: '/docs',
-  path: '/docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CalendarRoute = CalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BoardRoute = BoardRouteImport.update({
-  id: '/board',
-  path: '/board',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -103,14 +48,69 @@ const AnalyticsRoute = AnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const BoardRoute = BoardRouteImport.update({
+  id: '/board',
+  path: '/board',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GoalsIndexRoute = GoalsIndexRouteImport.update({
-  id: '/goals/',
-  path: '/goals/',
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HabitsRoute = HabitsRouteImport.update({
+  id: '/habits',
+  path: '/habits',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexoldRoute = IndexoldRouteImport.update({
+  id: '/indexold',
+  path: '/indexold',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JournalRoute = JournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MindmapRoute = MindmapRouteImport.update({
+  id: '/mindmap',
+  path: '/mindmap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PomodoroRoute = PomodoroRouteImport.update({
+  id: '/pomodoro',
+  path: '/pomodoro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoryRoute = StoryRouteImport.update({
+  id: '/story',
+  path: '/story',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookBookIdRoute = BookBookIdRouteImport.update({
+  id: '/book/$bookId',
+  path: '/book/$bookId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FinanceIndexRoute = FinanceIndexRouteImport.update({
@@ -118,49 +118,9 @@ const FinanceIndexRoute = FinanceIndexRouteImport.update({
   path: '/',
   getParentRoute: () => FinanceRoute,
 } as any)
-const GoalsListRoute = GoalsListRouteImport.update({
-  id: '/goals/list',
-  path: '/goals/list',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GoalsCreateRoute = GoalsCreateRouteImport.update({
-  id: '/goals/create',
-  path: '/goals/create',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GoalsIdRoute = GoalsIdRouteImport.update({
-  id: '/goals/$id',
-  path: '/goals/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FinanceTransactionsRoute = FinanceTransactionsRouteImport.update({
-  id: '/transactions',
-  path: '/transactions',
-  getParentRoute: () => FinanceRoute,
-} as any)
-const FinanceTradingRoute = FinanceTradingRouteImport.update({
-  id: '/trading',
-  path: '/trading',
-  getParentRoute: () => FinanceRoute,
-} as any)
-const FinanceImportRoute = FinanceImportRouteImport.update({
-  id: '/import',
-  path: '/import',
-  getParentRoute: () => FinanceRoute,
-} as any)
-const FinanceDebtRoute = FinanceDebtRouteImport.update({
-  id: '/debt',
-  path: '/debt',
-  getParentRoute: () => FinanceRoute,
-} as any)
-const FinanceContactsRoute = FinanceContactsRouteImport.update({
-  id: '/contacts',
-  path: '/contacts',
-  getParentRoute: () => FinanceRoute,
-} as any)
-const FinanceBudgetsRoute = FinanceBudgetsRouteImport.update({
-  id: '/budgets',
-  path: '/budgets',
+const FinanceAccountsRoute = FinanceAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
   getParentRoute: () => FinanceRoute,
 } as any)
 const FinanceAnalyticsRoute = FinanceAnalyticsRouteImport.update({
@@ -168,14 +128,54 @@ const FinanceAnalyticsRoute = FinanceAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => FinanceRoute,
 } as any)
-const FinanceAccountsRoute = FinanceAccountsRouteImport.update({
-  id: '/accounts',
-  path: '/accounts',
+const FinanceBudgetsRoute = FinanceBudgetsRouteImport.update({
+  id: '/budgets',
+  path: '/budgets',
   getParentRoute: () => FinanceRoute,
 } as any)
-const BookBookIdRoute = BookBookIdRouteImport.update({
-  id: '/book/$bookId',
-  path: '/book/$bookId',
+const FinanceContactsRoute = FinanceContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceDebtRoute = FinanceDebtRouteImport.update({
+  id: '/debt',
+  path: '/debt',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceImportRoute = FinanceImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceTradingRoute = FinanceTradingRouteImport.update({
+  id: '/trading',
+  path: '/trading',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const FinanceTransactionsRoute = FinanceTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => FinanceRoute,
+} as any)
+const GoalsIndexRoute = GoalsIndexRouteImport.update({
+  id: '/goals/',
+  path: '/goals/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalsIdRoute = GoalsIdRouteImport.update({
+  id: '/goals/$id',
+  path: '/goals/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalsCreateRoute = GoalsCreateRouteImport.update({
+  id: '/goals/create',
+  path: '/goals/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalsListRoute = GoalsListRouteImport.update({
+  id: '/goals/list',
+  path: '/goals/list',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -385,88 +385,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/story': {
-      id: '/story'
-      path: '/story'
-      fullPath: '/story'
-      preLoaderRoute: typeof StoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pomodoro': {
-      id: '/pomodoro'
-      path: '/pomodoro'
-      fullPath: '/pomodoro'
-      preLoaderRoute: typeof PomodoroRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mindmap': {
-      id: '/mindmap'
-      path: '/mindmap'
-      fullPath: '/mindmap'
-      preLoaderRoute: typeof MindmapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/library': {
-      id: '/library'
-      path: '/library'
-      fullPath: '/library'
-      preLoaderRoute: typeof LibraryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/journal': {
-      id: '/journal'
-      path: '/journal'
-      fullPath: '/journal'
-      preLoaderRoute: typeof JournalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/indexold': {
-      id: '/indexold'
-      path: '/indexold'
-      fullPath: '/indexold'
-      preLoaderRoute: typeof IndexoldRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/habits': {
-      id: '/habits'
-      path: '/habits'
-      fullPath: '/habits'
-      preLoaderRoute: typeof HabitsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/finance': {
-      id: '/finance'
-      path: '/finance'
-      fullPath: '/finance'
-      preLoaderRoute: typeof FinanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs': {
-      id: '/docs'
-      path: '/docs'
-      fullPath: '/docs'
-      preLoaderRoute: typeof DocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/calendar': {
-      id: '/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof CalendarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/board': {
-      id: '/board'
-      path: '/board'
-      fullPath: '/board'
-      preLoaderRoute: typeof BoardRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -476,18 +399,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/board': {
+      id: '/board'
+      path: '/board'
+      fullPath: '/board'
+      preLoaderRoute: typeof BoardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/goals/': {
-      id: '/goals/'
-      path: '/goals'
-      fullPath: '/goals/'
-      preLoaderRoute: typeof GoalsIndexRouteImport
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/habits': {
+      id: '/habits'
+      path: '/habits'
+      fullPath: '/habits'
+      preLoaderRoute: typeof HabitsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/indexold': {
+      id: '/indexold'
+      path: '/indexold'
+      fullPath: '/indexold'
+      preLoaderRoute: typeof IndexoldRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal': {
+      id: '/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof JournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mindmap': {
+      id: '/mindmap'
+      path: '/mindmap'
+      fullPath: '/mindmap'
+      preLoaderRoute: typeof MindmapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pomodoro': {
+      id: '/pomodoro'
+      path: '/pomodoro'
+      fullPath: '/pomodoro'
+      preLoaderRoute: typeof PomodoroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/story': {
+      id: '/story'
+      path: '/story'
+      fullPath: '/story'
+      preLoaderRoute: typeof StoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book/$bookId': {
+      id: '/book/$bookId'
+      path: '/book/$bookId'
+      fullPath: '/book/$bookId'
+      preLoaderRoute: typeof BookBookIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/finance/': {
@@ -497,67 +497,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FinanceIndexRouteImport
       parentRoute: typeof FinanceRoute
     }
-    '/goals/list': {
-      id: '/goals/list'
-      path: '/goals/list'
-      fullPath: '/goals/list'
-      preLoaderRoute: typeof GoalsListRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/goals/create': {
-      id: '/goals/create'
-      path: '/goals/create'
-      fullPath: '/goals/create'
-      preLoaderRoute: typeof GoalsCreateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/goals/$id': {
-      id: '/goals/$id'
-      path: '/goals/$id'
-      fullPath: '/goals/$id'
-      preLoaderRoute: typeof GoalsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/finance/transactions': {
-      id: '/finance/transactions'
-      path: '/transactions'
-      fullPath: '/finance/transactions'
-      preLoaderRoute: typeof FinanceTransactionsRouteImport
-      parentRoute: typeof FinanceRoute
-    }
-    '/finance/trading': {
-      id: '/finance/trading'
-      path: '/trading'
-      fullPath: '/finance/trading'
-      preLoaderRoute: typeof FinanceTradingRouteImport
-      parentRoute: typeof FinanceRoute
-    }
-    '/finance/import': {
-      id: '/finance/import'
-      path: '/import'
-      fullPath: '/finance/import'
-      preLoaderRoute: typeof FinanceImportRouteImport
-      parentRoute: typeof FinanceRoute
-    }
-    '/finance/debt': {
-      id: '/finance/debt'
-      path: '/debt'
-      fullPath: '/finance/debt'
-      preLoaderRoute: typeof FinanceDebtRouteImport
-      parentRoute: typeof FinanceRoute
-    }
-    '/finance/contacts': {
-      id: '/finance/contacts'
-      path: '/contacts'
-      fullPath: '/finance/contacts'
-      preLoaderRoute: typeof FinanceContactsRouteImport
-      parentRoute: typeof FinanceRoute
-    }
-    '/finance/budgets': {
-      id: '/finance/budgets'
-      path: '/budgets'
-      fullPath: '/finance/budgets'
-      preLoaderRoute: typeof FinanceBudgetsRouteImport
+    '/finance/accounts': {
+      id: '/finance/accounts'
+      path: '/accounts'
+      fullPath: '/finance/accounts'
+      preLoaderRoute: typeof FinanceAccountsRouteImport
       parentRoute: typeof FinanceRoute
     }
     '/finance/analytics': {
@@ -567,18 +511,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FinanceAnalyticsRouteImport
       parentRoute: typeof FinanceRoute
     }
-    '/finance/accounts': {
-      id: '/finance/accounts'
-      path: '/accounts'
-      fullPath: '/finance/accounts'
-      preLoaderRoute: typeof FinanceAccountsRouteImport
+    '/finance/budgets': {
+      id: '/finance/budgets'
+      path: '/budgets'
+      fullPath: '/finance/budgets'
+      preLoaderRoute: typeof FinanceBudgetsRouteImport
       parentRoute: typeof FinanceRoute
     }
-    '/book/$bookId': {
-      id: '/book/$bookId'
-      path: '/book/$bookId'
-      fullPath: '/book/$bookId'
-      preLoaderRoute: typeof BookBookIdRouteImport
+    '/finance/contacts': {
+      id: '/finance/contacts'
+      path: '/contacts'
+      fullPath: '/finance/contacts'
+      preLoaderRoute: typeof FinanceContactsRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/debt': {
+      id: '/finance/debt'
+      path: '/debt'
+      fullPath: '/finance/debt'
+      preLoaderRoute: typeof FinanceDebtRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/import': {
+      id: '/finance/import'
+      path: '/import'
+      fullPath: '/finance/import'
+      preLoaderRoute: typeof FinanceImportRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/trading': {
+      id: '/finance/trading'
+      path: '/trading'
+      fullPath: '/finance/trading'
+      preLoaderRoute: typeof FinanceTradingRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/finance/transactions': {
+      id: '/finance/transactions'
+      path: '/transactions'
+      fullPath: '/finance/transactions'
+      preLoaderRoute: typeof FinanceTransactionsRouteImport
+      parentRoute: typeof FinanceRoute
+    }
+    '/goals/': {
+      id: '/goals/'
+      path: '/goals'
+      fullPath: '/goals/'
+      preLoaderRoute: typeof GoalsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goals/$id': {
+      id: '/goals/$id'
+      path: '/goals/$id'
+      fullPath: '/goals/$id'
+      preLoaderRoute: typeof GoalsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goals/create': {
+      id: '/goals/create'
+      path: '/goals/create'
+      fullPath: '/goals/create'
+      preLoaderRoute: typeof GoalsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goals/list': {
+      id: '/goals/list'
+      path: '/goals/list'
+      fullPath: '/goals/list'
+      preLoaderRoute: typeof GoalsListRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
