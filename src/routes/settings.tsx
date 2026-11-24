@@ -3,11 +3,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import {
+  Activity,
   AlarmClock,
   Bell,
   BellOff,
   Check,
   CircleAlert,
+  FlaskConical,
   Loader2,
   Moon,
   RefreshCw,
@@ -22,8 +24,10 @@ import { useStore } from "@/lib/store";
 import {
   appSettingApi,
   boardApi,
+  periksaDomainDariBrowser,
   type AppSettingItem,
   type AppSettingsResponse,
+  type BarisKoneksi,
   type KeadaanTidur,
   type StatusPengirim,
 } from "@/lib/api";
@@ -74,6 +78,9 @@ function Settings() {
   const [memuat, setMemuat] = useState(true);
   const [sibuk, setSibuk] = useState<string | null>(null);
 
+  const [koneksi, setKoneksi] = useState<BarisKoneksi[]>([]);
+  const [koneksiDiperiksa, setKoneksiDiperiksa] = useState<string | null>(null);
+
   // =========================================================
   // MUAT
   // =========================================================
@@ -110,10 +117,43 @@ function Settings() {
     }
   }, [terapkan]);
 
+  /**
+   * Status koneksi digabung dari dua sumber: yang hanya bisa dilihat server
+   * (token bot, webhook, denyut worker) dan yang hanya jujur kalau diukur
+   * browser (domain publik lewat tunnel).
+   */
+  const periksaKoneksi = useCallback(async () => {
+    setSibuk("koneksi");
+
+    const [dariServer, dariBrowser] = await Promise.allSettled([
+      appSettingApi.koneksi(),
+      periksaDomainDariBrowser(),
+    ]);
+
+    const baris: BarisKoneksi[] = [];
+
+    if (dariBrowser.status === "fulfilled") baris.push(dariBrowser.value);
+
+    if (dariServer.status === "fulfilled") {
+      baris.push(...dariServer.value.koneksi);
+      setKoneksiDiperiksa(dariServer.value.diperiksa);
+    } else {
+      baris.push({
+        nama: "API BayTasks",
+        sehat: false,
+        catatan: "Tidak bisa dihubungi — server lokal atau tunnel sedang mati.",
+      });
+    }
+
+    setKoneksi(baris);
+    setSibuk(null);
+  }, []);
+
   useEffect(() => {
     muat();
     loadBoards();
-  }, [muat, loadBoards]);
+    periksaKoneksi();
+  }, [muat, loadBoards, periksaKoneksi]);
 
   // =========================================================
   // SIMPAN
@@ -170,6 +210,27 @@ function Settings() {
       await muat();
     } catch {
       toast.error("Gagal mengubah Sleep Mode");
+    } finally {
+      setSibuk(null);
+    }
+  };
+
+  const kirimReminderUji = async () => {
+    setSibuk("reminder");
+
+    try {
+      const hasil = await appSettingApi.testReminder();
+
+      if (hasil?.success) {
+        toast.success(hasil.message ?? "Reminder uji coba dikirim");
+      } else {
+        toast.error(hasil?.message ?? "Tidak ada reminder yang bisa diuji");
+      }
+
+      await periksaKoneksi();
+    } catch (err) {
+      console.error("TEST REMINDER ERROR", err);
+      toast.error(alasanPenolakan(err) ?? "Gagal mengirim reminder uji coba");
     } finally {
       setSibuk(null);
     }
@@ -260,6 +321,71 @@ function Settings() {
         </button>
       </div>
 
+      {/* ============ STATUS KONEKSI ============ */}
+      <section className="glass rounded-2xl p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-medium flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" />
+              Status koneksi
+            </h2>
+
+            <p className="text-sm text-muted-foreground mt-1">
+              Mengirim reminder <b>tidak</b> butuh tunnel — bot memanggil
+              Telegram dari dalam. Tunnel hanya dipakai untuk yang masuk:
+              balasan tombol dan website ini.
+            </p>
+          </div>
+
+          <button
+            onClick={periksaKoneksi}
+            disabled={sibuk === "koneksi"}
+            className="shrink-0 flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs hover:bg-secondary disabled:opacity-50"
+          >
+            {sibuk === "koneksi" ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3 w-3" />
+            )}
+            Periksa
+          </button>
+        </div>
+
+        <ul className="space-y-2">
+          {koneksi.length === 0 ? (
+            <li className="text-xs text-muted-foreground py-2">Memeriksa…</li>
+          ) : (
+            koneksi.map((k) => (
+              <li
+                key={k.nama}
+                className={`rounded-xl border px-3 py-2 ${
+                  k.sehat
+                    ? "border-[color-mix(in_oklab,var(--status-done)_30%,transparent)] bg-[color-mix(in_oklab,var(--status-done)_10%,transparent)]"
+                    : "border-[color-mix(in_oklab,var(--priority-urgent)_35%,transparent)] bg-[color-mix(in_oklab,var(--priority-urgent)_10%,transparent)]"
+                }`}
+              >
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                      k.sehat ? "bg-[var(--status-done)]" : "bg-[var(--priority-urgent)]"
+                    }`}
+                  />
+                  {k.nama}
+                </div>
+
+                <p className="text-xs text-muted-foreground mt-0.5">{k.catatan}</p>
+              </li>
+            ))
+          )}
+        </ul>
+
+        {koneksiDiperiksa && (
+          <p className="text-[11px] text-muted-foreground">
+            Diperiksa {koneksiDiperiksa}.
+          </p>
+        )}
+      </section>
+
       {/* ============ PANEL STATUS ============ */}
       <section className="glass rounded-2xl p-5 space-y-4">
         <div>
@@ -339,6 +465,31 @@ function Settings() {
           Catatan: &quot;tertinggal&quot; berarti jam kirimnya hari ini sudah
           lewat tapi belum ada jejak terkirim hari ini.
         </p>
+
+        {/* Reminder habit hanya menyala kalau jamnya pas di jendela 60 detik,
+            jadi tanpa tombol ini satu-satunya cara memastikan adalah menunggu
+            sampai jam habit berikutnya tiba. */}
+        <div className="border-t border-border pt-4">
+          <button
+            onClick={kirimReminderUji}
+            disabled={sibuk !== null}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-[color-mix(in_oklab,var(--status-review)_38%,transparent)] bg-[color-mix(in_oklab,var(--status-review)_14%,transparent)] px-3 py-2 text-sm text-[var(--status-review)] hover:bg-[color-mix(in_oklab,var(--status-review)_24%,transparent)] disabled:opacity-50"
+          >
+            {sibuk === "reminder" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FlaskConical className="h-4 w-4" />
+            )}
+            Kirim reminder habit uji coba
+          </button>
+
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            Mengirim ulang satu habit — yang paling dekat akan datang, atau
+            yang terakhir terlewat kalau hari ini sudah habis. Formatnya sama
+            persis dengan reminder asli, termasuk tombolnya; kalau tombol itu
+            berfungsi, berarti webhook juga sehat.
+          </p>
+        </div>
       </section>
 
       {/* ============ SLEEP MODE ============ */}

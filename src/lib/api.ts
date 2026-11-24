@@ -172,7 +172,48 @@ export const appSettingApi = {
   // jenis: "morning-brief" | "nightly-summary" | "test"
   sendNow: (jenis: string) =>
     request(`/app-settings/send/${jenis}`, { method: "POST" }),
+
+  /** Kirim ulang satu reminder habit (yang akan datang, atau yang terlewat). */
+  testReminder: () =>
+    request("/app-settings/test-reminder", { method: "POST" }),
+
+  koneksi: (): Promise<{ koneksi: BarisKoneksi[]; diperiksa: string }> =>
+    request("/app-settings/koneksi"),
 };
+
+export type BarisKoneksi = {
+  nama: string;
+  sehat: boolean;
+  catatan: string;
+};
+
+/**
+ * Mengukur domain publik DARI BROWSER, bukan dari server.
+ *
+ * Server tidak boleh memeriksa alamat publiknya sendiri: `php artisan serve`
+ * melayani satu permintaan pada satu waktu, jadi panggilan yang keluar lewat
+ * tunnel lalu kembali ke proses yang sama akan saling tunggu sampai batas
+ * waktu habis — tunnel sehat pun dilaporkan mati. Browser tidak punya
+ * masalah itu, dan yang diukurnya justru jalur yang benar-benar dipakai.
+ */
+export async function periksaDomainDariBrowser(): Promise<BarisKoneksi> {
+  const mulai = performance.now();
+
+  try {
+    const res = await fetch(`${API}/boards`, { cache: "no-store" });
+    const ms = Math.round(performance.now() - mulai);
+
+    return res.ok
+      ? { nama: "Domain publik", sehat: true, catatan: `${API} menjawab HTTP ${res.status} dalam ${ms} ms.` }
+      : { nama: "Domain publik", sehat: false, catatan: `${API} menjawab HTTP ${res.status}.` };
+  } catch (err) {
+    return {
+      nama: "Domain publik",
+      sehat: false,
+      catatan: `${API} tidak terjangkau: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
 
 // =========================
 // ATTACHMENTS
