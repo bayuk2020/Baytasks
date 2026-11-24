@@ -662,6 +662,16 @@ export type BookBookmark = {
   updated_at?: string;
 };
 
+/**
+ * Alamat berkas PDF sebuah buku.
+ *
+ * SENGAJA lewat rute API, bukan `books.file_path` yang menunjuk ke
+ * /storage/... langsung: berkas di /storage disajikan tanpa melewati Laravel,
+ * jadi tidak punya header CORS. <iframe> tidak peduli, tapi pdf.js yang
+ * mengambilnya dengan fetch dari domain berbeda akan ditolak browser.
+ */
+export const bookFileUrl = (bookId: string | number) => `${API}/books/${bookId}/file`;
+
 export const bookmarkApi = {
   list: (bookId: string | number): Promise<{ bookmarks: BookBookmark[] }> =>
     request(`/books/${bookId}/bookmarks`),

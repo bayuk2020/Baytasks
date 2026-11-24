@@ -22,12 +22,28 @@ export function BookmarkPanel({
   currentPage,
   totalPages,
   onJump,
+  onDaftarBerubah,
+  tandaiRef,
 }: {
   bookId: string;
   currentPage: number;
   totalPages: number;
   /** Dipanggil saat user mengetuk sebuah penanda: pindah ke halaman itu. */
   onJump: (page: number) => void;
+
+  /**
+   * Daftar nomor halaman yang ditandai, dikabarkan tiap kali berubah.
+   * Dipakai pembaca PDF untuk menyalakan tombol penandanya sendiri tanpa
+   * perlu mengambil data yang sama dua kali.
+   */
+  onDaftarBerubah?: (halaman: number[]) => void;
+
+  /**
+   * Celah kecil supaya pembaca PDF bisa menyalakan/mematikan penanda lewat
+   * panel ini. Tanpa ini keduanya akan punya salinan daftar sendiri dan
+   * gampang berbeda setelah satu klik.
+   */
+  tandaiRef?: { current: ((halaman: number) => void) | null };
 }) {
   const [bookmarks, setBookmarks] = useState<BookBookmark[]>([]);
   const [memuat, setMemuat] = useState(true);
@@ -51,33 +67,55 @@ export function BookmarkPanel({
     muat();
   }, [muat]);
 
+  // Setiap perubahan daftar dikabarkan ke atas, jadi pembaca PDF selalu
+  // melihat daftar yang sama persis dengan panel ini.
+  useEffect(() => {
+    onDaftarBerubah?.(bookmarks.map((b) => b.page_number));
+  }, [bookmarks, onDaftarBerubah]);
+
   const halamanIniDitandai = bookmarks.some((b) => b.page_number === currentPage);
 
-  const tandaiHalamanIni = async () => {
-    if (currentPage < 1) {
-      toast.error("Simpan dulu halaman yang sedang dibaca.");
-      return;
-    }
+  const tandaiHalaman = useCallback(
+    async (halaman: number) => {
+      if (halaman < 1) {
+        toast.error("Buka dulu halaman yang mau ditandai.");
+        return;
+      }
 
-    setSibuk(true);
+      setSibuk(true);
 
-    try {
-      const hasil = await bookmarkApi.toggle(bookId, { page_number: currentPage });
+      try {
+        const hasil = await bookmarkApi.toggle(bookId, { page_number: halaman });
 
-      toast.success(
-        hasil.action === "ditambah"
-          ? `Halaman ${currentPage} ditandai`
-          : `Penanda halaman ${currentPage} dilepas`,
-      );
+        toast.success(
+          hasil.action === "ditambah"
+            ? `Halaman ${halaman} ditandai`
+            : `Penanda halaman ${halaman} dilepas`,
+        );
 
-      await muat();
-    } catch (err) {
-      console.error("TOGGLE BOOKMARK ERROR", err);
-      toast.error(pesanGalat(err) ?? "Gagal mengubah penanda");
-    } finally {
-      setSibuk(false);
-    }
-  };
+        await muat();
+      } catch (err) {
+        console.error("TOGGLE BOOKMARK ERROR", err);
+        toast.error(pesanGalat(err) ?? "Gagal mengubah penanda");
+      } finally {
+        setSibuk(false);
+      }
+    },
+    [bookId, muat],
+  );
+
+  // Pembaca PDF memanggil fungsi yang SAMA, bukan salinannya.
+  useEffect(() => {
+    if (!tandaiRef) return;
+
+    tandaiRef.current = tandaiHalaman;
+
+    return () => {
+      tandaiRef.current = null;
+    };
+  }, [tandaiRef, tandaiHalaman]);
+
+  const tandaiHalamanIni = () => tandaiHalaman(currentPage);
 
   const hapus = async (b: BookBookmark) => {
     try {

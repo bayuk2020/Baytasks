@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -26,7 +26,9 @@ import {
 import { BookCover } from "@/components/library/BookCover";
 import { BookFormModal } from "@/components/library/BookFormModal";
 import { BookmarkPanel } from "@/components/library/BookmarkPanel";
+import { PdfReader } from "@/components/library/PdfReader";
 import { ReadingNoteEditor } from "@/components/library/ReadingNoteEditor";
+import { bookFileUrl } from "@/lib/api";
 
 export const Route = createFileRoute("/book/$bookId")({
   head: () => ({
@@ -86,6 +88,14 @@ const sessions = readingSessions.filter(
   );
   const [showPdf, setShowPdf] =
   useState(false);
+
+  // Daftar halaman bertanda, diisi oleh BookmarkPanel. Dipakai pembaca PDF
+  // supaya tombol penandanya menyala sesuai halaman yang sedang terbuka.
+  const [halamanDitandai, setHalamanDitandai] = useState<number[]>([]);
+
+  // Jalan pintas ke fungsi toggle milik BookmarkPanel, supaya tombol penanda
+  // di dalam pembaca memakai logika yang sama (termasuk toast dan muat ulang).
+  const tandaiRef = useRef<((halaman: number) => void) | null>(null);
 
   if (!book) return <Fallback message="Book not found." />;
 
@@ -317,10 +327,17 @@ const saveNote = async (
       PDF Reader
     </h3>
 
-    <iframe
-      src={book.filePath}
-      className="w-full h-[800px] rounded-xl border border-border"
-      title={book.title}
+    {/* Dulu di sini ada <iframe src={book.filePath}> -- viewer bawaan
+        browser. Diganti PdfReader yang menggambar tiap halaman sendiri,
+        karena hanya dengan begitu halaman bisa dibalik dengan animasi,
+        penanda bisa menyala sesuai halaman yang terbuka, dan halaman
+        terakhir yang dibaca bisa tersimpan. */}
+    <PdfReader
+      url={bookFileUrl(book.id)}
+      halamanAwal={book.currentPage || 1}
+      halamanDitandai={halamanDitandai}
+      onPindahHalaman={(hal) => setBookProgress(book.id, hal)}
+      onTandai={(hal) => tandaiRef.current?.(hal)}
     />
 
   </section>
@@ -402,6 +419,8 @@ const saveNote = async (
             bookId={book.id}
             currentPage={book.currentPage}
             totalPages={book.totalPages}
+            onDaftarBerubah={setHalamanDitandai}
+            tandaiRef={tandaiRef}
             // Melompat ke penanda = memindahkan halaman yang sedang dibaca,
             // jadi "halaman terakhir baca" ikut berpindah dan sesi baca
             // tercatat seperti kalau nomornya diketik manual.
