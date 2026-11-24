@@ -99,12 +99,79 @@ export const subtaskApi = {
 export const telegramApi = {
   get: () => request("/telegram-settings"),
 
+  /**
+   * PERINGATAN: endpoint ini MENGIRIM pesan "Koneksi BayTasks Berhasil!" ke
+   * Telegram setiap kali dipanggil (lihat TelegramSettingController@save).
+   * Jangan dipakai untuk simpan-otomatis — halaman Setting memakai
+   * appSettingApi.save() yang tidak punya efek samping itu.
+   */
   save: (payload: any) =>
     request("/telegram-settings", {
       method: "POST",
 
       body: JSON.stringify(payload),
     }),
+};
+
+// =========================
+// APP SETTINGS (halaman Setting)
+// =========================
+
+export type AppSettingItem = {
+  key: string;
+  value: boolean | number | string;
+  type: "bool" | "int" | "time" | "string";
+  default: boolean | number | string;
+  label: string;
+  group: string;
+};
+
+export type StatusPengirim = {
+  key: string;
+  label: string;
+  enabled: boolean;
+  time: string | null;
+  last_sent_at: string | null;
+  akan_terkirim: boolean;
+  alasan: string;
+  tertinggal: boolean;
+};
+
+export type KeadaanTidur = {
+  active: boolean;
+  since: string | null;
+  auto_wake_at: string;
+  wake_time: string | null;
+};
+
+export type AppSettingsResponse = {
+  settings: AppSettingItem[];
+  telegram: { chat_id: string; enabled: boolean };
+  sleep: KeadaanTidur;
+  status: StatusPengirim[];
+};
+
+export const appSettingApi = {
+  get: (): Promise<AppSettingsResponse> => request("/app-settings"),
+
+  save: (payload: {
+    settings?: Record<string, boolean | number | string>;
+    telegram?: { chat_id?: string; enabled?: boolean };
+  }) =>
+    request("/app-settings", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  sleep: (active: boolean) =>
+    request("/app-settings/sleep", {
+      method: "POST",
+      body: JSON.stringify({ active }),
+    }),
+
+  // jenis: "morning-brief" | "nightly-summary" | "test"
+  sendNow: (jenis: string) =>
+    request(`/app-settings/send/${jenis}`, { method: "POST" }),
 };
 
 // =========================
@@ -536,6 +603,50 @@ export const bookNoteApi = {
 
   remove: (id: string) =>
     request(`/book-notes/${id}`, {
+      method: "DELETE",
+    }),
+};
+
+// =========================
+// Book Bookmark API (penanda halaman)
+// =========================
+
+export type BookBookmark = {
+  id: number;
+  book_id: number;
+  page_number: number;
+  label: string | null;
+  color: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export const bookmarkApi = {
+  list: (bookId: string | number): Promise<{ bookmarks: BookBookmark[] }> =>
+    request(`/books/${bookId}/bookmarks`),
+
+  /**
+   * Satu alamat untuk menandai DAN melepas penanda: server yang memutuskan,
+   * berdasarkan ada tidaknya penanda di halaman itu. Jawabannya memuat
+   * `action` ("ditambah" / "dihapus") supaya UI tahu pesan apa yang pantas.
+   */
+  toggle: (
+    bookId: string | number,
+    payload: { page_number: number; label?: string | null; color?: string | null },
+  ): Promise<{ success: boolean; action: "ditambah" | "dihapus"; bookmark: BookBookmark | null }> =>
+    request(`/books/${bookId}/bookmarks/toggle`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  update: (id: number, payload: { label?: string | null; color?: string | null }) =>
+    request(`/book-bookmarks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  remove: (id: number) =>
+    request(`/book-bookmarks/${id}`, {
       method: "DELETE",
     }),
 };

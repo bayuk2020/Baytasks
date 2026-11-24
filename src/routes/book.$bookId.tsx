@@ -25,15 +25,16 @@ import {
 } from "@/lib/store";
 import { BookCover } from "@/components/library/BookCover";
 import { BookFormModal } from "@/components/library/BookFormModal";
+import { BookmarkPanel } from "@/components/library/BookmarkPanel";
 import { ReadingNoteEditor } from "@/components/library/ReadingNoteEditor";
 
 export const Route = createFileRoute("/book/$bookId")({
   head: () => ({
     meta: [
-      { title: "Book — Reading Vault" },
+      { title: "Book — Library" },
       {
         name: "description",
-        content: "Reading progress, sessions and notes inside BayTasks Reading Vault.",
+        content: "Progres baca, sesi, penanda halaman, dan catatan di Library BayTasks.",
       },
     ],
   }),
@@ -396,6 +397,20 @@ const saveNote = async (
               )}
             </div>
           </motion.section>
+
+          <BookmarkPanel
+            bookId={book.id}
+            currentPage={book.currentPage}
+            totalPages={book.totalPages}
+            // Melompat ke penanda = memindahkan halaman yang sedang dibaca,
+            // jadi "halaman terakhir baca" ikut berpindah dan sesi baca
+            // tercatat seperti kalau nomornya diketik manual.
+            onJump={(page) => {
+              setBookProgress(book.id, page);
+              flashSaved();
+            }}
+          />
+
           <SessionList sessions={sortedSessions} />
         </div>
 

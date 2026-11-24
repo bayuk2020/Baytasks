@@ -448,7 +448,7 @@ function Analytics() {
               </div>
             </Panel>
 
-            <Panel title="Reading Vault">
+            <Panel title="Library">
               <div className="text-3xl font-bold">{data.reading.pagesRead}</div>
               <p className="text-xs text-muted-foreground mt-1">halaman terbaca</p>
               <p className="text-sm mt-3 text-muted-foreground">

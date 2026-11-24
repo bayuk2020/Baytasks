@@ -46,6 +46,11 @@ import {
   exportActivityExcel,
 } from "@/lib/activityReport";
 
+import {
+  STATUS_META,
+  statusMeta,
+} from "@/lib/statusMeta";
+
 // Format tanggal LOKAL (bukan toISOString() yang UTC -- bisa geser tanggal
 // kalau timezone user di belakang UTC) untuk dikirim sebagai query ?date=.
 const toLocalDateStr = (d: Date) => {
@@ -193,6 +198,30 @@ function CalendarPage() {
       prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
     );
 
+  /**
+   * Satu-satunya pintu untuk mengganti tanggal terpilih.
+   *
+   * Selain memindahkan Daily Log, ia juga MENYEMPITKAN rentang Activity Log
+   * ke tanggal itu. Sebelumnya cuma Daily Log yang ikut berpindah, jadi
+   * mengklik satu tanggal menghasilkan dua panel yang bicara tentang hari
+   * yang berbeda -- kalender menyorot 20 November, Activity Log tetap
+   * menampilkan sebulan penuh.
+   *
+   * Rentangnya tetap bisa dilebarkan lagi lewat kolom tanggal atau tombol
+   * preset di Activity Log; yang diatur di sini hanya titik awalnya.
+   */
+  const pilihTanggal = (d: Date) => {
+    setSelectedDate(d);
+
+    const teks = toLocalDateStr(d);
+
+    setRangeFrom(teks);
+    setRangeTo(teks);
+  };
+
+  /** Rentang Activity Log sedang menunjuk tepat satu hari? */
+  const rentangSatuHari = rangeFrom === rangeTo;
+
   // Tombol pintas yang MENGISI kolom tanggal (bukan menggantikannya) --
   // rentangnya tetap terbaca jelas di input, itu yang bikin lebih informatif
   // ketimbang preset buta.
@@ -234,13 +263,9 @@ function CalendarPage() {
     setRangeTo(toLocalDateStr(to));
   };
 
-  const STATUS_META: { id: TaskStatus; label: string; dot: string }[] = [
-    { id: "backlog", label: "Backlog", dot: "bg-slate-400" },
-    { id: "todo", label: "To Do", dot: "bg-sky-400" },
-    { id: "in_progress", label: "In Progress", dot: "bg-amber-400" },
-    { id: "review", label: "Review", dot: "bg-violet-400" },
-    { id: "done", label: "Done", dot: "bg-emerald-400" },
-  ];
+  // STATUS_META sekarang diimpor dari @/lib/statusMeta supaya kartu di
+  // kalender, chip filter, dan tabel Activity Log memakai warna yang sama
+  // persis -- dan supaya warnanya ikut berganti di tema terang.
 
   const PRESETS: { id: Parameters<typeof applyPreset>[0]; label: string }[] = [
     { id: "7d", label: "7 hari" },
@@ -383,52 +408,12 @@ function CalendarPage() {
       }
     );
 
-  // =========================
-  // PRIORITY COLORS
-  // =========================
-
-  const priorityClass =
-    (
-      priority?: string
-    ) => {
-
-      switch (
-        priority
-      ) {
-
-        case "urgent":
-
-          return `
-            border-red-400/30
-            bg-red-500/10
-            text-red-200
-          `;
-
-        case "high":
-
-          return `
-            border-orange-400/30
-            bg-orange-500/10
-            text-orange-200
-          `;
-
-        case "med":
-
-          return `
-            border-[color-mix(in_oklab,var(--neon)_35%,transparent)]
-            bg-[var(--neon-soft)]
-            text-cyan-100
-          `;
-
-        default:
-
-          return `
-            border-border
-            bg-secondary/50
-            text-muted-foreground
-          `;
-      }
-    };
+  // Dulu di sini ada priorityClass() yang mewarnai kartu kalender menurut
+  // PRIORITAS. Sudah dihapus: kartu sekarang diwarnai menurut STATUS (lihat
+  // @/lib/statusMeta), dan prioritas tetap terbaca lewat tooltip kartu serta
+  // kolom Prioritas di tabel Activity Log. Kelasnya juga memakai palet
+  // Tailwind mati seperti `text-cyan-100` / `text-red-200` yang hampir tidak
+  // terlihat di tema terang.
 
   return (
 
@@ -594,14 +579,14 @@ function CalendarPage() {
                 rounded-xl
 
                 border
-                border-cyan-400/20
+                border-[color-mix(in_oklab,var(--neon)_35%,transparent)]
 
                 bg-[var(--neon-soft)]
 
-                text-cyan-100
+                text-[var(--neon)]
                 text-sm
 
-                hover:bg-cyan-500/20
+                hover:bg-[color-mix(in_oklab,var(--neon)_18%,transparent)]
 
                 transition
               "
@@ -771,7 +756,9 @@ function CalendarPage() {
                 key={i}
 
                 onClick={() => {
-                  if (c.date) setSelectedDate(c.date);
+                  // pilihTanggal, bukan setSelectedDate: Activity Log di
+                  // bawah ikut menyempit ke tanggal yang diklik.
+                  if (c.date) pilihTanggal(c.date);
                 }}
 
                 className={`
@@ -855,6 +842,13 @@ function CalendarPage() {
 
                           const overdue = t.dueAt && t.dueAt < Date.now() && t.column !== "done";
 
+                          // Warna kartu = STATUS task, bukan prioritas.
+                          // Sebelumnya penanda "dibuat" selalu abu-abu dan
+                          // penanda "deadline" diwarnai menurut prioritas,
+                          // jadi tidak ada cara membedakan task yang sudah
+                          // selesai dari yang belum disentuh.
+                          const st = statusMeta(t.column);
+
                           return (
 
                             <button
@@ -869,9 +863,10 @@ function CalendarPage() {
                               }}
 
                               title={
-                                kind === "created"
-                                  ? `Dibuat: ${t.title}`
-                                  : `Deadline: ${t.title}`
+                                `${kind === "created" ? "Dibuat" : "Deadline"}: ${t.title}` +
+                                `\nStatus: ${st.label}` +
+                                (t.priority ? `\nPrioritas: ${t.priority}` : "") +
+                                (overdue ? "\nSudah lewat jatuh tempo" : "")
                               }
 
                               className={`
@@ -896,26 +891,25 @@ function CalendarPage() {
 
                                 hover:scale-[1.02]
 
+                                ${st.pill}
+
                                 ${
+                                  /* Dua jenis penanda dibedakan oleh BENTUK
+                                     garis, bukan warna, supaya warna tetap
+                                     bebas dipakai untuk status: garis putus
+                                     = tanggal dibuat, garis utuh = deadline. */
                                   kind === "created"
+                                    ? "border-dashed"
+                                    : ""
+                                }
 
-                                    ? `
-                                      border-border
-                                      bg-secondary/40
-                                      text-muted-foreground
-                                    `
-
-                                    : overdue
-
-                                      ? `
-                                        border-red-400/20
-                                        bg-red-500/10
-                                        text-red-200
-                                      `
-
-                                      : priorityClass(
-                                          t.priority
-                                        )
+                                ${
+                                  /* Lewat jatuh tempo ditandai cincin merah,
+                                     BUKAN dengan menimpa warna status --
+                                     kalau ditimpa, statusnya ikut hilang. */
+                                  overdue
+                                    ? "ring-1 ring-[color-mix(in_oklab,var(--priority-urgent)_60%,transparent)]"
+                                    : ""
                                 }
                               `}
                             >
@@ -953,88 +947,60 @@ function CalendarPage() {
           })}
         </div>
 
-        {/* LEGENDA -- dua penanda beda arti, tanpa ini gampang salah baca */}
-        <div className="mt-4 flex flex-wrap items-center gap-4 px-1 text-[11px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary/40 px-1.5 py-0.5">
-              <Plus className="h-2.5 w-2.5 opacity-70" />
-            </span>
-            Tanggal task dibuat
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-md border border-[color-mix(in_oklab,var(--neon)_35%,transparent)] bg-[var(--neon-soft)] px-1.5 py-0.5">
-              <Flag className="h-2.5 w-2.5 opacity-70 text-cyan-100" />
-            </span>
-            Deadline (warna mengikuti prioritas, merah kalau lewat)
-          </span>
-          <span className="ml-auto">Semua board</span>
-        </div>
-      </motion.div>
+        {/* LEGENDA
+            Dua hal yang perlu dijelaskan dan gampang tertukar:
+            WARNA menandakan status, BENTUK GARIS menandakan jenis penanda. */}
+        <div className="mt-4 space-y-2 px-1 text-[11px] text-muted-foreground">
 
-      {/* ========================= */}
-      {/* DAILY LOG / TIMELINE (Memories) */}
-      {/* ========================= */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass rounded-3xl p-6 border border-border/40"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-[var(--neon)]" />
-            <h2 className="text-sm font-semibold tracking-tight">
-              Daily Log —{" "}
-              {selectedDate.toLocaleDateString(undefined, {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })}
-            </h2>
-          </div>
-          {selectedDate.toDateString() !== new Date().toDateString() && (
-            <button
-              onClick={() => setSelectedDate(new Date())}
-              className="text-xs text-[var(--neon)] hover:brightness-110 transition"
-            >
-              Kembali ke hari ini
-            </button>
-          )}
-        </div>
+          {/* Warna = status */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="uppercase tracking-wider opacity-70 mr-1">Status</span>
 
-        {loadingMemories ? (
-          <div className="text-center text-sm text-muted-foreground py-8">Memuat aktivitas…</div>
-        ) : memories.length === 0 ? (
-          <div className="text-center text-sm text-muted-foreground py-8">
-            Belum ada aktivitas tercatat di tanggal ini.
-          </div>
-        ) : (
-          <ol className="relative border-l border-border pl-5 space-y-5">
-            {memories.map((m) => (
-              <li key={m.id} className="relative">
-                <span className="absolute -left-[25px] top-1 h-3 w-3 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.6)]" />
-                <div className="text-[11px] text-muted-foreground">
-                  {m.occurredAt
-                    ? new Date(m.occurredAt).toLocaleTimeString(undefined, {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "—"}
-                </div>
-                <div className="text-sm font-medium mt-0.5">{m.title}</div>
-                {m.content && m.content !== m.title && (
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                    {m.content}
-                  </p>
-                )}
-              </li>
+            {STATUS_META.map((s) => (
+              <span
+                key={s.id}
+                className={`inline-flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 ${s.pill}`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+                {s.label}
+              </span>
             ))}
-          </ol>
-        )}
+          </div>
+
+          {/* Bentuk garis = jenis penanda */}
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-muted-foreground/50 px-1.5 py-0.5">
+                <Plus className="h-2.5 w-2.5 opacity-70" />
+              </span>
+              Garis putus = tanggal task dibuat
+            </span>
+
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-md border border-muted-foreground/50 px-1.5 py-0.5">
+                <Flag className="h-2.5 w-2.5 opacity-70" />
+              </span>
+              Garis utuh = deadline
+            </span>
+
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-md border border-muted-foreground/30 px-1.5 py-0.5 ring-1 ring-[color-mix(in_oklab,var(--priority-urgent)_60%,transparent)]">
+                <Flag className="h-2.5 w-2.5 opacity-70" />
+              </span>
+              Cincin merah = lewat jatuh tempo
+            </span>
+
+            <span className="ml-auto">Semua board</span>
+          </div>
+        </div>
       </motion.div>
 
       {/* ========================= */}
       {/* ACTIVITY LOG -- daftar task yang pernah dibuat, lintas semua board */}
       {/* ========================= */}
+      {/* Letaknya SENGAJA tepat di bawah kalender, di atas Daily Log: isinya
+          task, sama seperti kalender di atasnya, jadi keduanya terbaca sebagai
+          satu kesatuan. Daily Log (catatan memori) turun ke paling bawah. */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1043,13 +1009,23 @@ function CalendarPage() {
         <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <ListTree className="h-4 w-4 text-violet-300" />
+              <ListTree className="h-4 w-4 text-[var(--status-review)]" />
               <h2 className="text-sm font-semibold tracking-tight">Activity Log</h2>
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
               Task yang kamu buat pada rentang tanggal ini — semua board, termasuk yang
               sudah selesai maupun disembunyikan dari papan.
             </p>
+
+            {/* Kalau rentangnya tepat satu hari, hampir pasti karena tanggal
+                itu baru diklik di kalender. Dikatakan terang-terangan supaya
+                tidak terlihat seperti datanya tiba-tiba hilang. */}
+            {rentangSatuHari && (
+              <p className="text-[11px] text-[var(--neon)] mt-1">
+                Mengikuti tanggal yang dipilih di kalender. Pakai tombol preset di
+                bawah untuk melihat rentang yang lebih lebar.
+              </p>
+            )}
           </div>
 
           <div className="text-[11px] text-muted-foreground">
@@ -1107,9 +1083,14 @@ function CalendarPage() {
               <button
                 key={s.id}
                 onClick={() => toggleStatus(s.id)}
+                // Chip yang aktif memakai warna statusnya sendiri, jadi
+                // filter yang menyala langsung cocok dengan warna kartu di
+                // kalender. Warna lamanya (ungu untuk SEMUA status, dengan
+                // teks violet-100) tidak memberi petunjuk apa-apa dan nyaris
+                // tidak terbaca di tema terang.
                 className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border transition ${
                   active
-                    ? "border-violet-400/40 bg-violet-500/15 text-violet-100"
+                    ? s.pill
                     : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -1144,7 +1125,11 @@ function CalendarPage() {
               }
               disabled={loadingActivity || activityTasks.length === 0}
               title="Unduh laporan PDF sesuai filter di atas"
-              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              // Warnanya diambil dari variabel tema, bukan palet Tailwind.
+              // `text-rose-100` di atas latar rose-500/10 bagus di tema gelap
+              // tapi rasio kontrasnya cuma 2,4:1 di tema terang -- tulisannya
+              // praktis hilang. Variabel ini punya nilai sendiri untuk terang.
+              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border border-[color-mix(in_oklab,var(--priority-urgent)_38%,transparent)] bg-[color-mix(in_oklab,var(--priority-urgent)_14%,transparent)] text-[var(--priority-urgent)] hover:bg-[color-mix(in_oklab,var(--priority-urgent)_24%,transparent)] transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <FileText className="h-3.5 w-3.5" />
               PDF
@@ -1160,7 +1145,10 @@ function CalendarPage() {
               }
               disabled={loadingActivity || activityTasks.length === 0}
               title="Unduh laporan Excel sesuai filter di atas"
-              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              // Sama seperti tombol PDF: `text-emerald-100` hanya 1,6:1 di
+              // tema terang. Hijau "selesai" dipakai ulang di sini karena
+              // sudah punya versi terang maupun gelap.
+              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border border-[color-mix(in_oklab,var(--status-done)_38%,transparent)] bg-[color-mix(in_oklab,var(--status-done)_14%,transparent)] text-[var(--status-done)] hover:bg-[color-mix(in_oklab,var(--status-done)_24%,transparent)] transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <FileSpreadsheet className="h-3.5 w-3.5" />
               Excel
@@ -1169,7 +1157,7 @@ function CalendarPage() {
             <button
               onClick={() => setCreating(true)}
               title={`Task baru akan masuk ke board "${activeBoardName}"`}
-              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border border-[color-mix(in_oklab,var(--neon)_35%,transparent)] bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/25 transition"
+              className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border border-[color-mix(in_oklab,var(--neon)_35%,transparent)] bg-[color-mix(in_oklab,var(--neon)_14%,transparent)] text-[var(--neon)] hover:bg-[color-mix(in_oklab,var(--neon)_24%,transparent)] transition"
             >
               <Plus className="h-3.5 w-3.5" />
               Tambah Task
@@ -1237,7 +1225,7 @@ function CalendarPage() {
                       </td>
                       <td
                         className={`py-2 px-3 whitespace-nowrap text-xs ${
-                          overdue ? "text-rose-300" : "text-muted-foreground"
+                          overdue ? "text-[var(--priority-urgent)]" : "text-muted-foreground"
                         }`}
                       >
                         {t.dueAt
@@ -1263,6 +1251,69 @@ function CalendarPage() {
               </tbody>
             </table>
           </div>
+        )}
+      </motion.div>
+
+      {/* ========================= */}
+      {/* DAILY LOG / TIMELINE (Memories) */}
+      {/* ========================= */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass rounded-3xl p-6 border border-border/40"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-[var(--neon)]" />
+            <h2 className="text-sm font-semibold tracking-tight">
+              Daily Log —{" "}
+              {selectedDate.toLocaleDateString(undefined, {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}
+            </h2>
+          </div>
+          {selectedDate.toDateString() !== new Date().toDateString() && (
+            <button
+              onClick={() => pilihTanggal(new Date())}
+              className="text-xs text-[var(--neon)] hover:brightness-110 transition"
+            >
+              Kembali ke hari ini
+            </button>
+          )}
+        </div>
+
+        {loadingMemories ? (
+          <div className="text-center text-sm text-muted-foreground py-8">Memuat aktivitas…</div>
+        ) : memories.length === 0 ? (
+          <div className="text-center text-sm text-muted-foreground py-8">
+            Belum ada aktivitas tercatat di tanggal ini.
+          </div>
+        ) : (
+          <ol className="relative border-l border-border pl-5 space-y-5">
+            {memories.map((m) => (
+              <li key={m.id} className="relative">
+                {/* Titik timeline memakai warna tema, bukan bg-cyan-400 mati:
+                    cyan-400 pucat nyaris tak terlihat di latar terang. */}
+                <span className="absolute -left-[25px] top-1 h-3 w-3 rounded-full bg-[var(--neon)] shadow-[0_0_10px_color-mix(in_oklab,var(--neon)_60%,transparent)]" />
+                <div className="text-[11px] text-muted-foreground">
+                  {m.occurredAt
+                    ? new Date(m.occurredAt).toLocaleTimeString(undefined, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "—"}
+                </div>
+                <div className="text-sm font-medium mt-0.5">{m.title}</div>
+                {m.content && m.content !== m.title && (
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    {m.content}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ol>
         )}
       </motion.div>
 

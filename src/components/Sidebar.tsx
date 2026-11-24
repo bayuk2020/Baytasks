@@ -31,7 +31,7 @@ const navItems = [
   { to: "/habits", label: "Habits", icon: Flame },
   { to: "/journal", label: "Journal", icon: NotebookPen },
   { to: "/story", label: "Story", icon: Camera },
-  { to: "/library", label: "Reading Vault", icon: Library },
+  { to: "/library", label: "Library", icon: Library },
   { to: "/calendar", label: "Calendar", icon: Calendar },
   { to: "/pomodoro", label: "Pomodoro", icon: Timer },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },

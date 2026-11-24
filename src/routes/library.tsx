@@ -11,8 +11,8 @@ import GlowButton from "@/components/ui/GlowButton";
 export const Route = createFileRoute("/library")({
   head: () => ({
     meta: [
-      { title: "Reading Vault — BayTasks" },
-      { name: "description", content: "Track books, reading progress and notes in a futuristic knowledge vault." },
+      { title: "Library — BayTasks" },
+      { name: "description", content: "Koleksi buku, progres baca, penanda halaman, dan catatan." },
     ],
   }),
   component: Library,

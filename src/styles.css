@@ -45,6 +45,12 @@
   --color-priority-high: var(--priority-high);
   --color-priority-urgent: var(--priority-urgent);
 
+  --color-status-backlog: var(--status-backlog);
+  --color-status-todo: var(--status-todo);
+  --color-status-in-progress: var(--status-in-progress);
+  --color-status-review: var(--status-review);
+  --color-status-done: var(--status-done);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -105,6 +111,17 @@
   --priority-med: oklch(0.78 0.15 90);
   --priority-high: oklch(0.72 0.18 35);
   --priority-urgent: oklch(0.65 0.24 15);
+
+  /* --- Status kolom Kanban ------------------------------------------------ */
+  /* Urutannya bercerita: abu (belum disentuh) -> biru (antre) -> ambar
+     (sedang jalan) -> ungu (menunggu diperiksa) -> hijau (kelar). Nada
+     warnanya sengaja berjauhan supaya masih bisa dibedakan oleh mata yang
+     kesulitan membedakan merah-hijau. */
+  --status-backlog: oklch(0.70 0.03 260);
+  --status-todo: oklch(0.76 0.14 235);
+  --status-in-progress: oklch(0.80 0.15 85);
+  --status-review: oklch(0.72 0.16 300);
+  --status-done: oklch(0.75 0.16 160);
 
   --chart-1: oklch(0.78 0.18 235);
   --chart-2: oklch(0.72 0.16 165);
@@ -182,6 +199,18 @@
   --priority-med: oklch(0.58 0.14 75);
   --priority-high: oklch(0.57 0.18 40);
   --priority-urgent: oklch(0.53 0.23 22);
+
+  /* --- Status kolom Kanban ------------------------------------------------ */
+  /* Sama seperti prioritas: versi gelapnya (lightness 0.70-0.80) nyaris
+     hilang di latar putih, jadi di sini dipekatkan. Nada warnanya dijaga
+     sama supaya Backlog tetap abu, To Do tetap biru, dan seterusnya. */
+  --status-backlog: oklch(0.52 0.03 260);
+  --status-todo: oklch(0.53 0.16 250);
+  /* Ambar paling sulit: di 0.58 rasio kontrasnya cuma 4,0:1 terhadap latar
+     terang. Diturunkan ke 0.52 supaya lewat ambang 4,5:1 seperti yang lain. */
+  --status-in-progress: oklch(0.52 0.13 70);
+  --status-review: oklch(0.52 0.18 300);
+  --status-done: oklch(0.52 0.14 160);
 
   /* --- Grafik ------------------------------------------------------------- */
   /* Lima warna yang tetap bisa dibedakan satu sama lain di latar terang,
