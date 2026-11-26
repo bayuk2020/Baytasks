@@ -309,16 +309,10 @@ export function PdfReader({
   return (
     <div className="space-y-3">
       {/* ---------- KENDALI ---------- */}
+      {/* Panah maju/mundur SENGAJA tidak ada di sini. Tempatnya di sisi kiri
+          dan kanan halaman, sejajar mata saat membaca -- kalau di baris atas,
+          tiap ganti halaman harus menggulir naik dulu. */}
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => pindah(halaman - 1)}
-          disabled={halaman <= 1}
-          className="h-9 w-9 grid place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-40"
-          title="Halaman sebelumnya (panah kiri)"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-
         <div className="flex items-center gap-1.5 text-sm tabular-nums">
           {/* Pindah halaman hanya saat selesai mengetik (blur / Enter),
               BUKAN tiap ketikan. Dengan onChange, mengetik "12" sempat
@@ -345,15 +339,6 @@ export function PdfReader({
           />
           <span className="text-muted-foreground">/ {jumlahHalaman || "…"}</span>
         </div>
-
-        <button
-          onClick={() => pindah(halaman + 1)}
-          disabled={!jumlahHalaman || halaman >= jumlahHalaman}
-          className="h-9 w-9 grid place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-40"
-          title="Halaman berikutnya (panah kanan)"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
 
         <button
           onClick={() => onTandai(halaman)}
@@ -389,14 +374,22 @@ export function PdfReader({
         </span>
       </div>
 
-      {/* ---------- LEMBAR ---------- */}
+      {/* ---------- LEMBAR + PANAH DI SISINYA ---------- */}
       {/* perspective memberi kedalaman; tanpa ini putaran di sumbu Y terlihat
-          seperti gambar yang dipipihkan, bukan kertas yang dibalik. */}
+          seperti gambar yang dipipihkan, bukan kertas yang dibalik.
+          overflow dibiarkan visible supaya panah yang menempel (sticky) tidak
+          terpotong saat halaman digulir. */}
       <div
-        className="relative mx-auto w-full overflow-hidden rounded-xl bg-secondary/30 p-3"
+        className="relative flex w-full items-stretch gap-1 rounded-xl bg-secondary/30 p-2 sm:gap-2 sm:p-3"
         style={{ perspective: "2200px" }}
       >
-        <div className="relative mx-auto" style={{ transformStyle: "preserve-3d" }}>
+        <SisiPanah
+          arah="mundur"
+          onKlik={() => pindah(halaman - 1)}
+          nonaktif={halaman <= 1}
+        />
+
+        <div className="relative mx-auto min-w-0 flex-1" style={{ transformStyle: "preserve-3d" }}>
           {gambar ? (
             <img
               src={gambar}
@@ -452,17 +445,65 @@ export function PdfReader({
           </AnimatePresence>
         </div>
 
+        <SisiPanah
+          arah="maju"
+          onKlik={() => pindah(halaman + 1)}
+          nonaktif={!jumlahHalaman || halaman >= jumlahHalaman}
+        />
+
         {memuat && gambar && (
-          <div className="absolute right-4 top-4 rounded-full bg-background/80 p-1.5">
+          <div className="absolute right-14 top-4 rounded-full bg-background/80 p-1.5">
             <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
           </div>
         )}
       </div>
 
       <p className="text-[11px] text-muted-foreground text-center">
-        Panah kiri/kanan untuk membalik halaman. Halaman terakhir yang kamu
-        buka tersimpan otomatis.
+        Panah di kiri/kanan halaman, atau tombol panah di keyboard. Halaman
+        terakhir yang kamu buka tersimpan otomatis.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Panah pembalik halaman yang duduk di sisi kiri/kanan lembar.
+ *
+ * `sticky` dengan patokan 45vh membuatnya tetap sejajar mata selama halaman
+ * digulir: halaman PDF jauh lebih tinggi dari layar, dan kalau panahnya ikut
+ * tergulir ke atas, tiap ganti halaman harus menggulir balik dulu.
+ *
+ * Ia berhenti menempel sendiri begitu seluruh pembaca lewat dari layar --
+ * itu sifat bawaan sticky, dan di sini justru yang diinginkan: panah tidak
+ * mengambang di atas bagian halaman lain.
+ */
+function SisiPanah({
+  arah,
+  onKlik,
+  nonaktif,
+}: {
+  arah: "maju" | "mundur";
+  onKlik: () => void;
+  nonaktif: boolean;
+}) {
+  const Ikon = arah === "maju" ? ChevronRight : ChevronLeft;
+
+  return (
+    <div className="flex w-9 shrink-0 justify-center sm:w-12">
+      <button
+        onClick={onKlik}
+        disabled={nonaktif}
+        title={
+          arah === "maju"
+            ? "Halaman berikutnya (panah kanan)"
+            : "Halaman sebelumnya (panah kiri)"
+        }
+        aria-label={arah === "maju" ? "Halaman berikutnya" : "Halaman sebelumnya"}
+        style={{ top: "45vh" }}
+        className="sticky grid h-11 w-9 shrink-0 place-items-center self-start rounded-xl border border-border bg-background/80 text-muted-foreground shadow-sm backdrop-blur transition hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-30 sm:h-14 sm:w-12"
+      >
+        <Ikon className="h-5 w-5" />
+      </button>
     </div>
   );
 }
